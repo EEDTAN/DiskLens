@@ -381,5 +381,9 @@
   "r.backupfile.del": "Aman kalau file aslinya baik-baik saja. Kalau tidak, ini mungkin satu-satunya salinan.",
   "r.gamedata.what": "Data game.",
   "r.gamedata.del": "Game bisa berhenti bekerja atau harus mengunduh filenya lagi.",
-  "done.none": "tidak ada yang berubah"
+  "done.none": "tidak ada yang berubah",
+  "ex.selectAll": "Pilih semua",
+  "ex.selectNone": "Batal pilih semua",
+  "tray.addAll": "Tambah semua ke keranjang",
+  "tray.collectAll": "Kumpulkan semua ({n} · {size})"
 }

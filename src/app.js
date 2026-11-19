@@ -169,7 +169,7 @@ function workHTML() {
   const can = { back: S.hp > 0, fwd: S.hp < S.hist.length - 1, up: !same(S.cur, S.root) };
   return `<div class="work">${sideHTML()}<div class="tbar"><div class="tb1"><button class="nb" data-act="back" ${can.back ? '' : 'disabled'} title="${esc(t('ex.back'))}">‹</button><button class="nb" data-act="fwd" ${can.fwd ? '' : 'disabled'} title="${esc(t('ex.fwd'))}">›</button><button class="nb" data-act="up" ${can.up ? '' : 'disabled'} title="${esc(t('ex.up'))}">↑</button>
   <div class="addr">${crumbs()}</div><div class="sch"><span>🔍</span><input id="q" placeholder="${esc(t('ex.search'))}" value="${esc(S.q)}" autocomplete="off"></div></div>
-  <div class="tb2"><span class="info" id="stat">${esc(statText())}</span><span class="sp"></span><div class="seg">${[['list', 'ex.list'], ['grid', 'ex.grid'], ['map', 'ex.map']].map(([k, l]) => `<button class="${S.mode === k ? 'on' : ''}" data-mode="${k}">${esc(t(l))}</button>`).join('')}</div></div></div>
+  <div class="tb2"><button class="selall" id="selall" data-act="selall">${esc(selAllLabel())}</button><span class="info" id="stat">${esc(statText())}</span><span class="sp"></span><div class="seg">${[['list', 'ex.list'], ['grid', 'ex.grid'], ['map', 'ex.map']].map(([k, l]) => `<button class="${S.mode === k ? 'on' : ''}" data-mode="${k}">${esc(t(l))}</button>`).join('')}</div></div></div>
   <main>${expMain()}</main>${trayHTML()}<div class="panel" id="panel">${panelHTML()}</div></div>${modalHTML()}${viewerHTML()}${propsHTML()}`;
 }
 function visual(e, i) {
@@ -229,7 +229,7 @@ function panelHTML() {
   const sel = [...S.sel].map(p => S.entries.find(e => e.path === p)).filter(Boolean);
   if (sel.length > 1) {
     const tot = sel.reduce((a, e) => a + (e.size || 0), 0);
-    return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t('ex.selected', { n: sel.length }))}</span><h2>${esc(t('panel.multi'))}</h2><div class="sz">${esc(F(tot))}</div><small>${esc(t('panel.multiHint'))}</small></div><div class="det"><div class="card"><h4>${esc(t('panel.chosen'))}</h4>${sel.slice(0, 6).map(e => `<div class="mini" style="${gradOf(e)}"><span>${esc(e.name)}</span><span class="b"><i style="width:${(e.size || 0) / (tot || 1) * 100}%"></i></span><span class="v">${esc(F(e.size))}</span></div>`).join('')}${sel.length > 6 ? `<small style="color:var(--mute)">+${sel.length - 6}</small>` : ''}</div><div><button class="big ghost" data-act="copysel">${esc(t('ctx.copyPath'))}</button><button class="big ghost" data-act="propsel">${esc(t('ctx.props'))}</button></div></div>`;
+    return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t('ex.selected', { n: sel.length }))}</span><h2>${esc(t('panel.multi'))}</h2><div class="sz">${esc(F(tot))}</div><small>${esc(t('panel.multiHint'))}</small></div><div class="det"><div class="card"><h4>${esc(t('panel.chosen'))}</h4>${sel.slice(0, 6).map(e => `<div class="mini" style="${gradOf(e)}"><span>${esc(e.name)}</span><span class="b"><i style="width:${(e.size || 0) / (tot || 1) * 100}%"></i></span><span class="v">${esc(F(e.size))}</span></div>`).join('')}${sel.length > 6 ? `<small style="color:var(--mute)">+${sel.length - 6}</small>` : ''}</div><div><button class="big" data-act="traysel">${esc(t('tray.addAll'))}</button><button class="big ghost" data-act="copysel">${esc(t('ctx.copyPath'))}</button><button class="big ghost" data-act="propsel">${esc(t('ctx.props'))}</button></div></div>`;
   }
   const e = sel[0], k = e ? kindOf(e) : 'folder', name = e ? e.name : (same(S.cur, S.root) ? rootName() : S.cur.split(/[\\/]/).pop());
   const size = e ? e.size : folderTotal(), path = e ? e.path : S.cur;
@@ -241,9 +241,11 @@ function panelHTML() {
   <div class="card"><h4>${esc(t('ctx.props'))}</h4>${kv(t('panel.type'), esc(t('kind.' + k)))}${kv(t('panel.location'), esc(e ? parentOf(e.path) : path))}${kv(t('panel.size'), esc(F(size)))}${files != null ? kv(t('panel.contains'), esc(t('panel.containsVal', { f: t('unit.files', { n: N(files) }), d: t('unit.folders', { n: N(dirs || 0) }) }))) : ''}${e ? kv(t('panel.modified'), esc(fdate(e.mtime))) : ''}</div>
   <div>${e && !e.dir ? `<button class="big" data-act="openitem">${esc(t('ctx.open'))}</button>` : ''}${e && e.dir ? `<button class="big" data-act="openitem">${esc(t('panel.openFolder'))} ›</button>` : ''}${e ? `<button class="big ghost" data-analyze="${esc(e.path)}">${esc(t('panel.analyze'))} ›</button>` : ''}<button class="big ghost" data-act="showitem">${esc(t('ctx.show'))}</button></div></div>`;
 }
+const allSelected = () => S.view.length > 0 && S.view.every(e => S.sel.has(e.path));
+const selAllLabel = () => (allSelected() ? '☐ ' + t('ex.selectNone') : '☑ ' + t('ex.selectAll'));
 function refreshSel() {
   document.querySelectorAll('.rw[data-i],.gf[data-i],.tl[data-i]').forEach(x => { const e = S.view[+x.dataset.i]; x.classList.toggle('sel', !!e && S.sel.has(e.path)); });
-  $('panel').innerHTML = panelHTML(); $('stat').textContent = statText(); applyPreviewThumbs();
+  $('panel').innerHTML = panelHTML(); $('stat').textContent = statText(); const sa = $('selall'); if (sa) sa.textContent = selAllLabel(); applyPreviewThumbs();
 }
 function applyPreviewThumbs() { document.querySelectorAll('[data-pv]').forEach(el => api.thumb(el.dataset.pv).then(u => { if (u && el.isConnected) el.style.backgroundImage = `url("${u}")`; })); }
 
@@ -389,6 +391,8 @@ document.addEventListener('click', ev => {
     if (a === 'back') return goHist(-1); if (a === 'fwd') return goHist(1);
     if (a === 'up') return go(parentOf(S.cur));
     if (a === 'more') { S.limit += 3000; return render(); }
+    if (a === 'selall') { S.sel = allSelected() ? new Set() : new Set(S.view.map(e => e.path)); S.anchor = null; return refreshSel(); }
+    if (a === 'traysel') return addTray(sel);
     if (a === 'copysel') return copyPaths(sel); if (a === 'propsel') return openProps(sel);
     if (a === 'openitem' && sel[0]) return openEntry(sel[0]);
     if (a === 'showitem') return api.show(sel[0] ? sel[0].path : S.cur);

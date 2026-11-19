@@ -92,7 +92,7 @@ Click an item to read **What is this?**, **If you delete it**, and often a **Bet
 
 ### 6. Collect first, clean up in one go
 
-Drag rows into the collector at the bottom, or press **+**, from any tool. When you are done, press **Review**. Every item is listed again with what happens if it is deleted, and app data asks for an extra confirmation.
+Drag rows into the collector at the bottom, press **+**, select several items and use **Add all to collector**, or press **Collect all** in Analysis and Old files. When you are done, press **Review**. Every item is listed again with what happens if it is deleted, and app data asks for an extra confirmation.
 
 <p align="center"><img src="docs/screenshots/collector.png" alt="Collector with items" width="88%"></p>
 
@@ -136,7 +136,8 @@ Big files (50 MB or more) that have not changed in 6, 12, 24 or 36 months.
 | `Backspace`, `Alt` + `↑` | Up one folder |
 | `Alt` + `←` / `→` | Back / forward |
 | `↑` `↓`, `Shift` + `↑` `↓` | Move or extend the selection |
-| `Ctrl` + click, `Shift` + click, `Ctrl` + `A` | Select several items |
+| `Ctrl` + click, `Shift` + click | Select several items |
+| `Ctrl` + `A` or the **Select all** button | Select everything in the folder, press again to clear |
 | `Ctrl` + `Shift` + `C` | Copy the selected paths |
 | `Alt` + `Enter` | Properties |
 | `F5` | Refresh the folder |

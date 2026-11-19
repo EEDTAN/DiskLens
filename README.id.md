@@ -92,7 +92,7 @@ Klik satu item untuk membaca **Apa ini?**, **Kalau dihapus**, dan sering juga **
 
 ### 6. Kumpulkan dulu, bersihkan sekaligus
 
-Seret baris ke keranjang di bawah, atau tekan **+**, dari alat mana pun. Setelah selesai, tekan **Periksa**. Setiap item ditampilkan lagi beserta akibatnya kalau dihapus, dan data aplikasi meminta konfirmasi tambahan.
+Seret baris ke keranjang di bawah, tekan **+**, pilih beberapa item lalu **Tambah semua ke keranjang**, atau tekan **Kumpulkan semua** di Analisis dan File lama. Setelah selesai, tekan **Periksa**. Setiap item ditampilkan lagi beserta akibatnya kalau dihapus, dan data aplikasi meminta konfirmasi tambahan.
 
 <p align="center"><img src="docs/screenshots/collector.png" alt="Keranjang berisi item" width="88%"></p>
 
@@ -136,7 +136,8 @@ File besar (50 MB ke atas) yang tidak berubah selama 6, 12, 24, atau 36 bulan.
 | `Backspace`, `Alt` + `↑` | Naik satu folder |
 | `Alt` + `←` / `→` | Mundur / maju |
 | `↑` `↓`, `Shift` + `↑` `↓` | Pindah atau perluas pilihan |
-| `Ctrl` + klik, `Shift` + klik, `Ctrl` + `A` | Pilih banyak item |
+| `Ctrl` + klik, `Shift` + klik | Pilih banyak item |
+| `Ctrl` + `A` atau tombol **Pilih semua** | Pilih semua isi folder, tekan lagi untuk membatalkan |
 | `Ctrl` + `Shift` + `C` | Salin path yang dipilih |
 | `Alt` + `Enter` | Properti |
 | `F5` | Segarkan folder |

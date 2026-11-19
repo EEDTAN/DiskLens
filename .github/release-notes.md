@@ -7,6 +7,18 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.2.1
+
+- **Select all** button in Explorer (also `Ctrl` + `A`); press it again to clear the selection.
+- **Add all to collector** when several items are selected.
+- **Collect all** button in Analysis and Old files for the list you are looking at.
+
+## Yang baru di 0.2.1
+
+- Tombol **Pilih semua** di Penjelajah (juga `Ctrl` + `A`); tekan lagi untuk membatalkan.
+- **Tambah semua ke keranjang** saat beberapa item dipilih.
+- Tombol **Kumpulkan semua** di Analisis dan File lama.
+
 ## What is new in 0.2.0
 
 - **Analysis**: 48 rules explain what an item is and what happens if you delete it, grouped into *Safe to delete*, *Check first* and *Keep*, often with a better way to do it.

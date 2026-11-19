@@ -389,5 +389,9 @@
   "r.backupfile.del": "Fine if the original is in good shape. Otherwise this might be your only copy.",
   "r.gamedata.what": "Game data.",
   "r.gamedata.del": "The game may stop working or need to download its files again.",
-  "done.none": "nothing changed"
+  "done.none": "nothing changed",
+  "ex.selectAll": "Select all",
+  "ex.selectNone": "Select none",
+  "tray.addAll": "Add all to collector",
+  "tray.collectAll": "Collect all ({n} · {size})"
 }

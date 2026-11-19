@@ -132,7 +132,7 @@ function analysisHTML() {
   const all = S.an.items.filter(x => !gone(x.path)), by = k => all.filter(x => x.risk === k), list = by(S.an.tab), tot = list.reduce((a, x) => a + x.size, 0);
   const tabs = ['safe', 'caution', 'danger'].map(k => { const l = by(k); return `<button class="at ${S.an.tab === k ? 'on' : ''}" data-antab="${k}" style="--c:${RC[k]}"><i></i><b>${esc(t('risk.' + k))}</b><span>${esc(F(l.reduce((a, x) => a + x.size, 0)))}</span><small>${esc(t('ex.items', { n: N(l.length) }))}</small></button>`; }).join('');
   const shown = list.slice(0, 400);
-  return `<div class="ats">${tabs}</div><div class="exp">${shown.length ? shown.map(x => rowX(x, tot)).join('') : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
+  return `<div class="ats">${tabs}</div>${collectAllBar(shown) ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? shown.map(x => rowX(x, tot)).join('') : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
 }
 function riskPanel(it) {
   if (!it) {
@@ -181,7 +181,7 @@ const dupExtras = x => { const k = S.dups.keep[x.gi], keep = x.items.find(f => f
 
 /* ---------- old files ---------- */
 function oldHTML() {
-  const seg = `<div class="tb2 inl"><span class="info">${esc(t('old.intro'))}</span><span class="sp"></span><div class="seg">${[6, 12, 24, 36].map(m => `<button class="${S.old.months === m ? 'on' : ''}" data-omonths="${m}">${esc(t('old.months', { n: m }))}</button>`).join('')}</div></div>`;
+  const seg = `<div class="tb2 inl"><span class="info">${esc(t('old.intro'))}</span><span class="sp"></span>${S.old.items ? collectAllBar(S.old.items.filter(v => !gone(v.path)).slice(0, 400)) : ''}<div class="seg">${[6, 12, 24, 36].map(m => `<button class="${S.old.months === m ? 'on' : ''}" data-omonths="${m}">${esc(t('old.months', { n: m }))}</button>`).join('')}</div></div>`;
   if (!S.old.items) return seg + `<div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
   const list = S.old.items.filter(x => !gone(x.path)), tot = list.reduce((a, x) => a + x.size, 0);
   return seg + `<div class="exp">${list.length ? `<p class="osum">${esc(t('old.sum', { n: N(list.length), size: F(tot) }))}</p>` + list.slice(0, 400).map(x => rowX(x, tot, ' · ' + esc(t('old.changed', { d: fdate(x.mtime) })))).join('') : `<div class="empty2">${esc(t('old.none'))}</div>`}</div>`;
@@ -192,6 +192,12 @@ function toolTop() {
   const ti = { analysis: 'nav.analysis', dups: 'nav.dups', old: 'ov.old' }[S.tool], sub = { analysis: 'an.sub', dups: 'dups.sub', old: 'old.sub' }[S.tool];
   return `<div class="tb1"><div style="flex:1"><small style="color:var(--mute);font-size:13px">${esc(t(sub))}</small><h1 style="font-size:26px;letter-spacing:-.7px">${esc(t(ti))}</h1></div></div>`;
 }
+const addable = list => list.filter(it => it.risk !== 'danger' && !it.rest && !inTray(it.path));
+function collectAllBar(list) {
+  const l = addable(list), size = l.reduce((a, v) => a + v.size, 0);
+  return l.length ? `<button class="pbtn sm" data-act2="collectall">🧺 ${esc(t('tray.collectAll', { n: N(l.length), size: F(size) }))}</button>` : '';
+}
+const currentList = () => S.tool === 'analysis' ? (S.an.items || []).filter(v => v.risk === S.an.tab && !gone(v.path)).slice(0, 400) : S.tool === 'old' ? (S.old.items || []).filter(v => !gone(v.path)).slice(0, 400) : [];
 const toolMain = () => S.tool === 'analysis' ? analysisHTML() : S.tool === 'dups' ? dupsHTML() : oldHTML();
 const toolPanel = () => riskPanel(S.xsel ? itemByPath(S.xsel) : null);
 function toolCtx(ev) {
@@ -234,6 +240,7 @@ document.addEventListener('click', async ev => {
     if (a === 'dcancel') { api.dupsCancel(); S.dups.state = 'idle'; return render(); }
     if (a === 'dreset') { S.dups.state = 'idle'; return render(); }
     if (a === 'dall') return addTray(dupGroups().flatMap(dupExtras));
+    if (a === 'collectall') return addTray(addable(currentList()));
   }
   if (el = c('.xr[data-p]')) { S.xsel = el.dataset.p; document.querySelectorAll('.xr').forEach(x => x.classList.toggle('sel', x.dataset.p === S.xsel)); $('panel').innerHTML = toolPanel(); applyPreviewThumbs(); }
 });
