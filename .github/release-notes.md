@@ -7,6 +7,18 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.5
+
+- **Double-click opens and closes a folder level** in Explorer's list, Analysis and Old files, instead of going into the folder. Enter or right-click → Open still goes into it.
+- **Softer home screen**: the shadows of the logo and the big purple card were cut off into hard edges. They now fade out smoothly, also on the scan result and Settings screens.
+- Fixed an error when clicking empty space in Analysis after selecting items in Explorer.
+
+## Yang baru di 0.3.5
+
+- **Klik dua kali membuka dan menutup tingkat folder** di daftar Penjelajah, Analisis, dan File lama, tidak lagi masuk ke dalam folder. Enter atau klik kanan → Buka tetap masuk ke folder.
+- **Beranda lebih halus**: bayangan logo dan kotak ungu besar sebelumnya terpotong jadi garis tajam. Sekarang memudar dengan lembut, begitu juga di layar hasil scan dan Pengaturan.
+- Diperbaiki: error saat mengklik area kosong di Analisis setelah memilih item di Penjelajah.
+
 ## What is new in 0.3.4
 
 - **Much faster scanning**: a small Windows scanner reads sizes straight from the folder listing. A whole C: drive with 778,000 files went from 175 seconds to 7.5 seconds on the test PC. If it cannot run, DiskLens falls back to the old scanner.

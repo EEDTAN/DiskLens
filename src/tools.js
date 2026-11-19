@@ -259,6 +259,7 @@ document.addEventListener('click', async ev => {
   if (el = c('[data-show]')) return api.show(el.dataset.show);
   if (el = c('[data-analyze]')) { const e = itemByPath(el.dataset.analyze) || { path: el.dataset.analyze, name: el.dataset.analyze.split(/[\\/]/).pop(), size: 0 }; const r = await api.classifyMany([[e.path, !!e.dir]]); const it = { ...e, ...r[0] }; S.known.set(it.path, it); S.tool = 'analysis'; S.xsel = it.path; render(); return loadTool(); }
   if (el = c('[data-empty]')) { const l = el.dataset.empty; if (S.armed !== l) { S.armed = l; $('panel').innerHTML = toolPanel(); setTimeout(() => { if (S.armed === l) { S.armed = null; if ($('panel') && S.tool !== 'explorer') $('panel').innerHTML = toolPanel(); } }, 4000); return; } S.armed = null; toast(t('an.emptying')); const ok = await api.emptyBin(l); toast(ok ? t('an.emptied') : t('err.other', { e: 'Recycle Bin' })); S.drives = await api.drives(); S.gone.add(l + ':\\$Recycle.Bin'); return render(); }
+  if (c('.tfr') && !c('.chevb')) return;
   if (el = c('[data-tf]')) { const k = el.dataset.tf; S.closed.has(k) ? S.closed.delete(k) : S.closed.add(k); return render(); }
   if (el = c('[data-dmin]')) { S.dups.min = +el.dataset.dmin; return render(); }
   if (el = c('[data-dkeep]')) { S.dups.keep[el.dataset.dkeep] = el.dataset.path; S.tray = S.tray.filter(x => !same(x.path, el.dataset.path)); return render(); }
@@ -291,7 +292,7 @@ document.addEventListener('change', e => {
   if (tg.name === 'oa') { S.op.origAfter = tg.value; render(); }
 });
 document.addEventListener('input', e => { if (e.target.id === 'hp') { S.op.word = e.target.value; const r = $('run'); if (r) r.disabled = !canRun(); } });
-document.addEventListener('dblclick', e => { const el = e.target.closest('.xr[data-p]'); if (el && S.tool !== 'explorer') { const it = itemByPath(el.dataset.p); if (it && it.dir) reveal(it.path); else if (it) api.open(it.path); } });
+document.addEventListener('dblclick', e => { const tf = e.target.closest('.tfr[data-tf]'); if (tf && !e.target.closest('.chevb')) { const k = tf.dataset.tf; S.closed.has(k) ? S.closed.delete(k) : S.closed.add(k); return render(); } const el = e.target.closest('.xr[data-p]'); if (el && S.tool !== 'explorer') { const it = itemByPath(el.dataset.p); if (it && it.dir) reveal(it.path); else if (it) api.open(it.path); } });
 document.addEventListener('keydown', e => {
   if (S.screen !== 'work' || S.modal || S.viewer || S.props || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) { if (e.key === 'Escape' && S.modal === 'confirm') { S.modal = null; render(); } return; }
   if (e.key === 'Delete') { const act = e.shiftKey ? 'perm' : 'bin'; if (S.tool === 'explorer') { const l = selList(); if (l.length) deleteNow(l, act); } else if (S.xsel) deleteNow([itemByPath(S.xsel)], act); else if (S.tray.length) reviewWith(act); }

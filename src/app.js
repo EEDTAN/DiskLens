@@ -424,9 +424,15 @@ document.addEventListener('click', ev => {
     if (a === 'pclose') { S.props = null; return render(); }
   }
   if (el = c('.rw[data-i],.gf[data-i],.tl[data-i]')) return clickRow(ev, el);
-  if (c('.exp') && S.sel.size) { S.sel = new Set(); refreshSel(); }
+  if (S.tool === 'explorer' && c('.exp') && S.sel.size) { S.sel = new Set(); refreshSel(); }
 });
-document.addEventListener('dblclick', ev => { const el = ev.target.closest('.rw[data-i],.gf[data-i],.tl[data-i]'); if (!el) return; const e = itemOf(+el.dataset.i); if (e) openEntry(e); });
+// Double-click a folder in the list opens or closes its level in place (Enter or right-click → Open still goes into it).
+document.addEventListener('dblclick', ev => {
+  if (ev.target.closest('[data-xt],.chevb')) return;
+  const el = ev.target.closest('.rw[data-i],.gf[data-i],.tl[data-i]'); if (!el) return; const e = itemOf(+el.dataset.i); if (!e) return;
+  if (e.dir && el.classList.contains('rw') && S.mode === 'list' && !S.q) return toggleOpen(e.path);
+  openEntry(e);
+});
 document.addEventListener('input', ev => { if (ev.target.id !== 'q') return; S.q = ev.target.value; S.limit = 1500; render(); const i = $('q'); i.focus(); i.setSelectionRange(S.q.length, S.q.length); });
 document.addEventListener('scroll', closeCtx, true);
 addEventListener('blur', closeCtx);

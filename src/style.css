@@ -98,7 +98,7 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
 .logo2 { font-weight: 800; font-size: 21px; display: flex; gap: 10px; align-items: center; letter-spacing: -.5px; } .logo2 i { width: 32px; height: 32px; border-radius: 11px; background: linear-gradient(135deg, #8b5cff, #ff80d8); box-shadow: 0 6px 16px -8px color-mix(in srgb, #8b5cff 55%, transparent); }
 .homegrid { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; min-height: 0; }
 .hl { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
-.hero2 { flex: 1; border-radius: 40px; background: linear-gradient(150deg, #8b5cff, #6a3df0); color: #fff; padding: 38px 40px; display: flex; align-items: center; gap: 20px; box-shadow: 0 30px 50px -26px rgba(106,61,240,.8); position: relative; overflow: hidden; }
+.hero2 { flex: 1; border-radius: 40px; background: linear-gradient(150deg, #8b5cff, #6a3df0); color: #fff; padding: 38px 40px; display: flex; align-items: center; gap: 20px; box-shadow: 0 24px 48px -28px rgba(106,61,240,.6); position: relative; overflow: hidden; }
 .hero2::before { content: ''; position: absolute; right: -80px; top: -80px; width: 280px; height: 280px; border-radius: 50%; background: rgba(255,255,255,.1); }
 .hero2 small { opacity: .8; font-size: 14px; } .hero2 h1 { font-size: 36px; line-height: 1.1; letter-spacing: -1.2px; margin: 8px 0 14px; } .hero2 p { opacity: .85; font-size: 15px; line-height: 1.6; margin-bottom: 24px; max-width: 360px; }
 .hero2 svg { width: 230px; flex: none; filter: drop-shadow(0 22px 18px rgba(30,5,100,.4)); position: relative; }
@@ -260,7 +260,10 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
 .updrow { display: flex; align-items: center; gap: 14px; } .updrow b { font-size: 15px; } .updrow small { display: block; color: var(--mute); font-size: 13px; margin-top: 2px; } .card2 .mb { margin-top: 12px; }
 
 /* never glued to the bottom edge; scroll instead of cropping in small windows */
-.shell { overflow-y: auto; padding-bottom: 28px; }
+.shell { overflow-y: auto; }
+/* The scroll area reaches the window edges and pads its content back in by the same 20px as the body,
+   so shadows and glows near the edges are not cut off into hard lines. */
+.shell { height: calc(100% + 40px); max-width: 1280px; margin: -20px max(-20px, calc((100% - 1280px) / 2)); padding: 20px 20px 48px; }
 .shell > .scanbox, .shell > .ovgrid, .shell > .acts, .shell > .ovh, .shell > .ovh2 { flex: none; }
 .scanbox { margin: auto; }
 @media (max-height: 880px) {
@@ -358,7 +361,7 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
 :where(:root.dark) .sub2 { background: #3d1d24; }
 :where(:root.dark) .cancel { background: #2a2450; }
 :where(:root.dark) .prog .pb { background: #2b2647; }
-:where(:root.dark) .hero2 { box-shadow: 0 30px 50px -26px rgba(0,0,0,.8); }
+:where(:root.dark) .hero2 { box-shadow: 0 24px 48px -28px rgba(0,0,0,.6); }
 :where(:root.dark) .drop { background: rgba(33,29,59,.5); }
 :where(:root.dark) .drop.over { background: #2d2656; }
 :where(:root.dark) .drop > i { background: #211d3b; }
