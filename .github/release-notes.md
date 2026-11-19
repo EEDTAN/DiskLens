@@ -7,6 +7,14 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.7
+
+- **Photos and videos fit the screen**: the viewer showed big photos at full size, so they were zoomed in and cut off. Now every photo and video is shown whole, keeps its shape, and grows or shrinks with the window.
+
+## Yang baru di 0.3.7
+
+- **Foto dan video menyesuaikan layar**: sebelumnya foto besar tampil di ukuran aslinya, jadi terlihat ter-zoom dan terpotong. Sekarang setiap foto dan video tampil utuh, proporsinya tetap, dan ikut membesar atau mengecil mengikuti jendela.
+
 ## What is new in 0.3.6
 
 - **Analysis is a plain list again**, biggest first. Each row shows where the item lives (📂 its folder). Long paths keep the drive and the last folders. "What is this" and "if deleted" stay in the side panel.

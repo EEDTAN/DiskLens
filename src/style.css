@@ -198,7 +198,7 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
 .vw { position: fixed; inset: 0; z-index: 40; background: rgba(14,10,36,.94); backdrop-filter: blur(8px); display: grid; grid-template-rows: auto minmax(0, 1fr); color: #fff; animation: cmin .15s; }
 .vtop { display: flex; align-items: center; gap: 10px; padding: 16px 22px; } .vtop b { font-size: 16px; display: block; } .vtop small { opacity: .65; font-size: 12.5px; } .vtop .sp { flex: 1; }
 .vb { padding: 9px 16px; border-radius: 12px; background: rgba(255,255,255,.12); color: #fff; font-weight: 700; font-size: 13px; } .vb:hover { background: rgba(255,255,255,.22); } .vb.x { width: 40px; padding: 9px 0; }
-.vstage { display: grid; place-items: center; padding: 0 100px 70px; min-height: 0; } .vimg { width: min(1000px, 100%); aspect-ratio: 16 / 10; max-height: 100%; border-radius: 20px; background-size: cover; background-position: center; position: relative; box-shadow: 0 40px 80px -20px #000; }
+.vstage { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; padding: 0 100px 70px; min-height: 0; min-width: 0; } .vimg { width: min(1000px, 100%); aspect-ratio: 16 / 10; max-height: 100%; border-radius: 20px; background-size: cover; background-position: center; position: relative; box-shadow: 0 40px 80px -20px #000; }
 .vplay { position: absolute; inset: 0; display: grid; place-items: center; cursor: pointer; } .vplay i { width: 84px; height: 84px; border-radius: 50%; background: rgba(0,0,0,.5); display: grid; place-items: center; } .vplay i::after { content: ''; margin-left: 8px; border-left: 26px solid #fff; border-top: 16px solid transparent; border-bottom: 16px solid transparent; }
 .vctl { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 14px 18px; background: linear-gradient(transparent, rgba(0,0,0,.6)); border-radius: 0 0 20px 20px; font-size: 12.5px; } .vbar { flex: 1; height: 5px; border-radius: 5px; background: rgba(255,255,255,.3); } .vbar i { display: block; width: 0; height: 100%; border-radius: 5px; background: #ff80d8; }
 .vnav { position: absolute; top: 50%; transform: translateY(-50%); width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 28px; } .vnav:hover { background: rgba(255,255,255,.26); } .vnav.l { left: 24px; } .vnav.r { right: 24px; } .vnav:disabled { opacity: .25; }
@@ -218,7 +218,7 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
 .side .grow { flex: 1; min-height: 12px; }
 .th { background-image: linear-gradient(135deg, #ece6fb, #f6f1ff); } .th.loaded { background-size: cover; background-position: center; }
 .card.pv .th.pvimg { height: 170px; border-radius: 16px; background-size: cover; background-position: center; }
-.vimg2 { max-width: min(1100px, 100%); max-height: 100%; border-radius: 18px; box-shadow: 0 40px 80px -20px #000; object-fit: contain; background: #000; }
+.vimg2 { max-width: 100%; max-height: 100%; width: auto; height: auto; min-width: 0; min-height: 0; border-radius: 18px; box-shadow: 0 40px 80px -20px #000; object-fit: contain; background: #000; }
 .vfail { color: #fff; opacity: .8; font-size: 15px; }
 .setg { display: flex; flex-direction: column; gap: 18px; max-width: 860px; width: 100%; margin: 0 auto; overflow: auto; padding-bottom: 20px; }
 .setg .hint { color: var(--mute); font-size: 13px; line-height: 1.6; margin: 0 0 14px; }
