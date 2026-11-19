@@ -11,7 +11,7 @@ const S = {
 const t = (k, v = {}) => {
   const d = S.langs[S.lang] || {}, f = S.langs.en || {};
   let s = d[k] ?? f[k] ?? k;
-  if (String(v.n) === '1') s = d[k + '.one'] ?? f[k + '.one'] ?? s;
+  if (String(v.n) === '1') s = d[k + '.one'] ?? (d[k] !== undefined ? s : f[k + '.one']) ?? s;
   for (const x in v) s = s.split('{' + x + '}').join(v[x]);
   return s;
 };
@@ -82,7 +82,7 @@ function homeHTML() {
 /* ---------- scan ---------- */
 function scanHTML() {
   const name = esc(S.scan.root);
-  return shell(`<div class="scanbox"><div class="ringw"><svg viewBox="0 0 190 190"><circle cx="95" cy="95" r="80" fill="none" stroke="#eee9fb" stroke-width="16"/><circle id="rg" class="${S.scan.used ? '' : 'spin'}" cx="95" cy="95" r="80" fill="none" stroke="url(#sg)" stroke-width="16" stroke-linecap="round" stroke-dasharray="${S.scan.used ? '0 503' : '150 503'}"/><defs><linearGradient id="sg"><stop offset="0" stop-color="#ff80d8"/><stop offset="1" stop-color="#7c4dff"/></linearGradient></defs></svg><div class="pct" id="pc">${S.scan.used ? '0%' : '…'}</div></div>
+  return shell(`<div class="scanbox"><div class="ringw"><svg viewBox="0 0 190 190"><circle cx="95" cy="95" r="80" fill="none" stroke="var(--ring, #eee9fb)" stroke-width="16"/><circle id="rg" class="${S.scan.used ? '' : 'spin'}" cx="95" cy="95" r="80" fill="none" stroke="url(#sg)" stroke-width="16" stroke-linecap="round" stroke-dasharray="${S.scan.used ? '0 503' : '150 503'}"/><defs><linearGradient id="sg"><stop offset="0" stop-color="#ff80d8"/><stop offset="1" stop-color="#7c4dff"/></linearGradient></defs></svg><div class="pct" id="pc">${S.scan.used ? '0%' : '…'}</div></div>
   <h2>${esc(t('scan.title', { name: S.scan.root }))}</h2><div class="path" id="sp">${esc(t('scan.preparing'))}</div>
   <div class="stats"><div><b id="sf">0</b><small>${esc(t('scan.files'))}</small></div><div><b id="sd">0</b><small>${esc(t('scan.folders'))}</small></div><div><b id="ss">0 B</b><small>${esc(t('scan.size'))}</small></div></div>
   <div class="live"><h4>${esc(t('scan.biggest'))}</h4><div id="lv"></div></div><p class="ro">${esc(t('scan.readonly'))}</p><button class="ghostb" data-act="cancel">${esc(t('scan.cancel'))}</button></div>`);
@@ -273,6 +273,7 @@ function settingsHTML() {
   const codes = Object.keys(S.langs).sort((a, b) => (a === 'en' ? -1 : b === 'en' ? 1 : a.localeCompare(b)));
   return shell(`<div class="setg"><div class="ovh"><button class="backb" data-act="back2" title="${esc(t('close'))}">‹</button><div><h1>${esc(t('settings.title'))}</h1></div></div>
   <div class="card2"><h3>${esc(t('settings.language'))}</h3><p class="hint">${esc(t('settings.languageHint'))}</p><div class="lang-grid">${codes.map(c => `<button class="lbtn ${c === S.lang ? 'on' : ''}" data-lang="${esc(c)}"><b>${esc(S.langs[c]._name || c)}</b><small>${esc(c)}</small></button>`).join('')}</div></div>
+  <div class="card2"><h3>${esc(t('settings.theme'))}</h3><div class="seg themes">${['light', 'dark', 'system'].map(k => `<button class="${S.theme === k ? 'on' : ''}" data-theme="${k}">${esc(t('theme.' + k))}</button>`).join('')}</div></div>
   <div class="card2"><h3>${esc(t('settings.history'))}</h3>${S.history.length ? S.history.slice(0, 12).map(h => `<div class="hist"><span>${esc(fdate(h.at))}</span><b>${esc(t('hist.' + h.action, { n: h.n }))}</b><em>${esc(F(h.bytes))}</em></div>`).join('') : `<p class="hint">${esc(t('settings.noHistory'))}</p>`}</div>
   ${updateCard()}
   <div class="card2"><h3>${esc(t('settings.about'))}</h3><div class="aboutrow"><span class="lgo xl">${LOGO}</span><div><b>DiskLens</b><small>${esc(t('settings.version'))} ${esc(S.version)} · ${esc(t('settings.license'))}</small></div></div>
@@ -374,6 +375,7 @@ document.addEventListener('click', ev => {
   if (!ev.target.closest('#ctx')) closeCtx();
   const c = s => ev.target.closest(s); let el;
   if (el = c('[data-scan]')) return startScan(el.dataset.scan);
+  if (el = c('[data-theme]')) { S.theme = el.dataset.theme; api.setSettings({ theme: S.theme }); applyTheme(); return render(); }
   if (el = c('[data-lang]')) { S.lang = el.dataset.lang; api.setSettings({ lang: S.lang }); return render(); }
   if (el = c('[data-ext]')) return api.external(el.dataset.ext);
   if (el = c('[data-go]')) return go(el.dataset.go);
@@ -427,11 +429,17 @@ document.addEventListener('keydown', ev => {
   if (k === 'ArrowDown' || k === 'ArrowUp') { ev.preventDefault(); moveSel(k === 'ArrowDown' ? 1 : -1, ev.shiftKey); }
 });
 
+/* ---------- theme ---------- */
+const darkQ = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme() { document.documentElement.classList.toggle('dark', S.theme === 'dark' || (S.theme === 'system' && darkQ.matches)); }
+darkQ.addEventListener('change', applyTheme);
+
 /* ---------- start ---------- */
 (async () => {
   const [langs, settings, paths, drives, version] = await Promise.all([api.langs(), api.getSettings(), api.paths(), api.drives(), api.version()]);
   S.langs = langs; S.paths = paths; S.drives = drives; S.version = version; S.recent = settings.recent || []; S.history = settings.history || [];
   const sys = (navigator.language || 'en').slice(0, 2).toLowerCase();
   S.lang = settings.lang && langs[settings.lang] ? settings.lang : (langs[sys] ? sys : 'en');
+  S.theme = settings.theme || 'light'; applyTheme();
   render();
 })();

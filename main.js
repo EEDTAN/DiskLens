@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, nativeImage, dialog, clipboard, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, nativeImage, dialog, clipboard, Menu, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -13,9 +13,10 @@ const norm = p => p.replace(/[\\/]+$/, '').toLowerCase();
 
 function createWindow() {
   Menu.setApplicationMenu(null);
+  nativeTheme.themeSource = readSettings().theme || 'light';
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 1100, minHeight: 700,
-    backgroundColor: '#f1eeff', title: 'DiskLens', autoHideMenuBar: true,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#141226' : '#f1eeff', title: 'DiskLens', autoHideMenuBar: true,
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
@@ -36,6 +37,7 @@ const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFil
 ipcMain.handle('settings:get', () => readSettings());
 ipcMain.handle('settings:set', (_, patch) => {
   const next = { ...readSettings(), ...patch };
+  if (patch.theme) nativeTheme.themeSource = patch.theme; // title bar follows the app theme
   fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
   fs.writeFileSync(settingsFile(), JSON.stringify(next, null, 2));
   return next;
@@ -176,11 +178,17 @@ const join = (a, b) => a.replace(/[\\/]+$/, '') + '\\' + b;
 const appPaths = () => [app.getAppPath(), path.dirname(process.execPath), app.getPath('userData')];
 ipcMain.handle('analysis:run', () => {
   const s = scanOf(lastRoot); if (!s) return [];
-  return rules.analyze(s.tree, s.root).slice(0, 1500);
+  // DiskLens's own folders are left out; each item says whether it can be cleaned and how.
+  const own = appPaths().map(x => x.toLowerCase().replace(/[\\/]+$/, ''));
+  return rules.analyze(s.tree, s.root)
+    .filter(it => !own.some(o => it.path.toLowerCase() === o || it.path.toLowerCase().startsWith(o + path.sep)))
+    .slice(0, 1500)
+    .map(it => { const r = rules.RULES.find(x => x.id === it.rule), contents = !!(r && r.contents) && it.dir;
+      return { ...it, contents, lock: it.rule === 'recycle' ? 'recycle' : rules.protectedReason(it.path, appPaths(), { contents }) }; });
 });
 ipcMain.handle('analysis:classify', (_, p, isDir) => { const r = rules.classify(p, !!isDir); return r ? { rule: r.id, risk: r.risk } : { rule: null, risk: 'unknown' }; });
-ipcMain.handle('analysis:classifyMany', (_, list) => list.map(([p, d]) => { const r = rules.classify(p, !!d); return r ? { rule: r.id, risk: r.risk } : { rule: null, risk: 'unknown' }; }));
-ipcMain.handle('ops:guard', (_, paths) => paths.map(p => rules.protectedReason(p, appPaths())));
+ipcMain.handle('analysis:classifyMany', (_, list) => list.map(([p, d]) => { const r = rules.classify(p, !!d); return r ? { rule: r.id, risk: r.risk, contents: !!r.contents } : { rule: null, risk: 'unknown', contents: false }; }));
+ipcMain.handle('ops:guard', (_, list) => list.map(x => typeof x === 'string' ? rules.protectedReason(x, appPaths()) : rules.protectedReason(x.path, appPaths(), { contents: !!x.contents })));
 
 /* ---------- old files: big files not changed for a long time ---------- */
 const SYSTEM_AREA = /^[a-z]:\\(windows|program files|program files \(x86\)|programdata|\$recycle\.bin|system volume information|recovery)$/i;
@@ -223,7 +231,7 @@ ipcMain.handle('ops:run', async (_, opts) => {
   opBusy = true;
   try {
     const results = await ops.run(opts, d => send('ops:progress', d), appPaths());
-    for (const r of results) forget(r.path, r.freed, r.ok);
+    for (const r of results) forget(r.path, r.freed, r.gone);
     const s = scanOf(lastRoot);
     return { results, rootBytes: s ? s.tree.s : null };
   } finally { opBusy = false; }

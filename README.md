@@ -159,6 +159,10 @@ English and Bahasa Indonesia, switchable in **Settings**. DiskLens follows the W
 3. Translate the values. Keep the keys, the `{placeholders}` and the `<b>` tags as they are.
 4. Open a pull request. The language shows up in Settings by itself.
 
+## Light or dark
+
+**Settings → Theme** has three choices: Light, Dark, or Same as Windows. The window title bar follows the choice too.
+
 ## Privacy
 
 DiskLens runs entirely on your computer. It does not send file names, sizes or anything else over the internet, and it has no telemetry.

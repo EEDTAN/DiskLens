@@ -12,15 +12,20 @@ const { protectedReason } = require('./rules');
 let cancelled = false;
 const cancel = () => { cancelled = true; };
 
+// Size of a file or folder. Walks sub-folders in parallel, a limited number at a time.
+let mSlots = 48; const mWait = [];
+const mAcquire = () => (mSlots > 0 ? (mSlots--, Promise.resolve()) : new Promise(r => mWait.push(r)));
+const mRelease = () => { const w = mWait.shift(); if (w) w(); else mSlots++; };
 async function measure(p) {
-  const st = await fsp.lstat(p);
+  await mAcquire();
+  let st, ents;
+  try { st = await fsp.lstat(p); if (st.isDirectory()) ents = await fsp.readdir(p, { withFileTypes: true }); } finally { mRelease(); }
   if (!st.isDirectory()) return { bytes: st.size, files: 1, links: 0 };
   let bytes = 0, files = 0, links = 0;
-  for (const e of await fsp.readdir(p, { withFileTypes: true })) {
-    if (e.isSymbolicLink()) { links++; continue; }
-    const r = await measure(path.join(p, e.name));
-    bytes += r.bytes; files += r.files; links += r.links;
-  }
+  await Promise.all(ents.map(async e => {
+    if (e.isSymbolicLink()) { links++; return; }
+    try { const r = await measure(path.join(p, e.name)); bytes += r.bytes; files += r.files; links += r.links; } catch { /* vanished */ }
+  }));
   return { bytes, files, links };
 }
 const exists = p => fsp.lstat(p).then(() => true, () => false);
@@ -74,20 +79,44 @@ async function overwrite(p, onBytes) {
 async function freeBytes(p) { const s = await fsp.statfs(path.parse(p).root); return s.bavail * s.bsize; }
 const driveOf = p => path.parse(path.resolve(p)).root.toLowerCase();
 
-// opts: { action: 'bin' | 'perm' | 'move', paths: [...], secure, verify, origAfter: 'perm' | 'bin', dest }
+// Run a few jobs at once.
+async function pool(list, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (i < list.length) await fn(list[i++]); }));
+}
+// Clean what is inside a temp or cache folder; the folder itself stays. Files in use are skipped.
+async function clearContents(dir) {
+  let names = [];
+  try { names = await fsp.readdir(dir); } catch { return { skipped: 0 }; }
+  let skipped = 0;
+  await pool(names, 8, async n => {
+    if (cancelled) { skipped++; return; }
+    try { await fsp.rm(path.join(dir, n), { recursive: true, force: false, maxRetries: 1 }); } catch { skipped++; }
+  });
+  return { skipped };
+}
+
+// opts: { action: 'bin' | 'perm' | 'move', items: [{ path, contents, size }], secure, verify, origAfter: 'perm' | 'bin', dest }
 async function run(opts, send, extraProtected = []) {
   cancelled = false;
+  const items = opts.items || (opts.paths || []).map(p => ({ path: p }));
   const results = [], plan = [];
-  for (const p of opts.paths) {
-    const why = protectedReason(p, extraProtected);
-    if (why) { results.push({ path: p, ok: false, error: 'PROTECTED', freed: 0 }); continue; }
-    try { const m = await measure(p); plan.push({ path: p, ...m }); }
-    catch (e) { results.push({ path: p, ok: false, error: e.code || String(e), freed: 0 }); }
+  for (const it of items) {
+    const why = protectedReason(it.path, extraProtected, { contents: !!it.contents });
+    if (why) { results.push({ path: it.path, ok: false, error: 'PROTECTED', freed: 0 }); continue; }
+    if (it.contents && opts.action === 'move') { results.push({ path: it.path, ok: false, error: 'CACHEMOVE', freed: 0 }); continue; }
+    try {
+      await fsp.lstat(it.path);
+      // The scan already knows the size; only measure when it does not (or when moving, to find links).
+      const m = opts.action === 'move' || !(it.size > 0) ? await measure(it.path) : { bytes: it.size, links: 0 };
+      plan.push({ path: it.path, bytes: m.bytes, links: m.links, contents: !!it.contents });
+    } catch (e) { results.push({ path: it.path, ok: false, error: e.code || String(e), freed: 0 }); }
   }
   const total = plan.reduce((a, x) => a + x.bytes, 0) || 1;
   let done = 0, phase = 'start', current = '';
-  const tick = () => send({ phase, current, done: Math.min(done, total), total, index: results.length, count: opts.paths.length });
+  const tick = () => send({ phase, current, done: Math.min(done, total), total, index: results.length, count: items.length });
   const timer = setInterval(tick, 150);
+  const leftOf = async p => { try { return (await measure(p)).bytes; } catch { return 0; } };
   try {
     if (opts.action === 'move') {
       if (!opts.dest || !(await exists(opts.dest))) throw Object.assign(new Error('dest'), { code: 'NODEST' });
@@ -99,38 +128,48 @@ async function run(opts, send, extraProtected = []) {
       }
       if ((await freeBytes(opts.dest)) < total + 64 * 1024 * 1024) throw Object.assign(new Error('space'), { code: 'NOSPACE' });
     }
-    for (const x of plan) {
-      if (cancelled) { results.push({ path: x.path, ok: false, error: 'CANCELLED', freed: 0 }); continue; }
-      current = x.path; const before = x.bytes, start = done;
+    const one = async x => {
+      if (cancelled) { results.push({ path: x.path, ok: false, error: 'CANCELLED', freed: 0 }); return; }
+      current = x.path; const before = x.bytes;
       try {
-        if (opts.action === 'bin') { phase = 'bin'; tick(); await shell.trashItem(x.path); done += before; }
+        if (x.contents) {
+          // Temp and cache folders: cleaned directly, like Disk Cleanup does. The Recycle Bin would only slow it down.
+          phase = 'delete';
+          const { skipped } = await clearContents(x.path);
+          const freed = skipped ? Math.max(0, before - await leftOf(x.path)) : before;
+          done += before; results.push({ path: x.path, ok: true, freed, gone: false, skipped });
+          return;
+        }
+        if (opts.action === 'bin') { phase = 'bin'; await shell.trashItem(x.path); }
         else if (opts.action === 'perm') {
-          if (opts.secure) { phase = 'overwrite'; await overwrite(x.path, n => { done += n; }); done = start + before; }
-          phase = 'delete'; tick(); await fsp.rm(x.path, { recursive: true, force: false, maxRetries: 2 }); done = start + before;
+          if (opts.secure) { phase = 'overwrite'; const start = done; await overwrite(x.path, n => { done += n; }); done = start; }
+          phase = 'delete'; await fsp.rm(x.path, { recursive: true, force: false, maxRetries: 2 });
         } else if (opts.action === 'move') {
           if (x.links) throw Object.assign(new Error('links'), { code: 'HASLINK' });
           let target = path.join(opts.dest, path.basename(x.path)), k = 2;
           while (await exists(target)) target = path.join(opts.dest, path.parse(x.path).name + ` (${k++})` + path.parse(x.path).ext);
-          const share = opts.verify ? 0.5 : 0.9;
+          const start = done, share = opts.verify ? 0.5 : 0.9;
           phase = 'copy'; await copyTree(x.path, target, n => { done += n * share; });
           if (opts.verify) {
             phase = 'verify'; let seen = 0;
             const ok = await sameTree(x.path, target, n => { seen += n; done = start + before * 0.5 + Math.min(before * 0.4, seen / 2 * 0.4); });
             if (!ok) throw Object.assign(new Error('verify'), { code: 'VERIFY', target });
           }
-          phase = 'delete'; tick();
+          phase = 'delete';
           if (opts.origAfter === 'bin') await shell.trashItem(x.path); else await fsp.rm(x.path, { recursive: true, force: false, maxRetries: 2 });
-          done = start + before; x.target = target;
+          done = start; x.target = target;
         }
-        results.push({ path: x.path, ok: true, freed: before, target: x.target });
+        done += before;
+        results.push({ path: x.path, ok: true, freed: before, gone: true, target: x.target });
       } catch (e) {
         // Partly deleted folders: report how much is really gone.
-        let left = 0; try { left = (await measure(x.path)).bytes; } catch { left = 0; }
-        const gone = (await exists(x.path)) ? Math.max(0, before - left) : before;
-        results.push({ path: x.path, ok: false, error: e.code || String(e), freed: opts.action === 'move' ? 0 : gone, target: e.target });
-        done = start + before;
+        const still = await exists(x.path), gone = still ? Math.max(0, before - await leftOf(x.path)) : before;
+        results.push({ path: x.path, ok: false, error: e.code || String(e), freed: opts.action === 'move' ? 0 : gone, gone: !still, target: e.target });
+        done += before;
       }
-    }
+    };
+    // Moving copies one item at a time; deleting runs a few at once.
+    await pool(plan, opts.action === 'move' ? 1 : 3, one);
   } catch (e) {
     for (const x of plan) if (!results.find(r => r.path === x.path)) results.push({ path: x.path, ok: false, error: e.code || String(e), freed: 0 });
   } finally { clearInterval(timer); }

@@ -14,28 +14,28 @@ const RULES = [
   // inside Windows
   { id: 'winsxs', risk: 'danger', dir: true, unit: true, re: /^[a-z]:\\windows\\winsxs$/ },
   { id: 'wininstaller', risk: 'danger', dir: true, unit: true, re: /^[a-z]:\\windows\\installer$/ },
-  { id: 'wintemp', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\windows\\temp$/ },
-  { id: 'winupdate', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\windows\\softwaredistribution\\download$/ },
-  { id: 'winlogs', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\windows\\logs$/ },
-  { id: 'dumps', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\windows\\(minidump|livekernelreports)$/ },
+  { id: 'wintemp', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\windows\\temp$/ },
+  { id: 'winupdate', risk: 'caution', dir: true, unit: true, contents: true, re: /^[a-z]:\\windows\\softwaredistribution\\download$/ },
+  { id: 'winlogs', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\windows\\logs$/ },
+  { id: 'dumps', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\windows\\(minidump|livekernelreports)$/ },
   { id: 'prefetch', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\windows\\prefetch$/ },
   { id: 'windows', risk: 'danger', dir: true, area: true, re: /^[a-z]:\\windows$/ },
   // games and programs
   { id: 'steamgame', risk: 'caution', dir: true, unit: true, re: /\\steamapps\\common\\[^\\]+$/ },
-  { id: 'steamcache', risk: 'safe', dir: true, unit: true, re: /\\steamapps\\(shadercache|temp)$/ },
+  { id: 'steamcache', risk: 'safe', dir: true, unit: true, contents: true, re: /\\steamapps\\(shadercache|temp)$/ },
   { id: 'steamdl', risk: 'caution', dir: true, unit: true, re: /\\steamapps\\downloading$/ },
   { id: 'program', risk: 'danger', dir: true, unit: true, re: /^[a-z]:\\program files( \(x86\))?\\[^\\]+$/ },
   { id: 'pkgcache', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\programdata\\package cache$/ },
-  { id: 'wer', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\programdata\\microsoft\\windows\\wer$/ },
+  { id: 'wer', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\programdata\\microsoft\\windows\\wer$/ },
   { id: 'programdata', risk: 'caution', dir: true, area: true, re: /^[a-z]:\\programdata\\[^\\]+$/ },
   // user profile: caches first
-  { id: 'usertemp', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\temp$/ },
-  { id: 'inetcache', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\microsoft\\windows\\(inetcache|explorer|webcache)$/ },
-  { id: 'crashdumps', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\crashdumps$/ },
+  { id: 'usertemp', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\temp$/ },
+  { id: 'inetcache', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\microsoft\\windows\\(inetcache|explorer|webcache)$/ },
+  { id: 'crashdumps', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\crashdumps$/ },
   { id: 'wsl', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\(packages\\[^\\]*(ubuntu|debian|kali|suse|wsl|linux)[^\\]*|docker)$/ },
-  { id: 'devcache', risk: 'safe', dir: true, unit: true, re: /\\(npm-cache|yarn\\cache|pip\\cache|pnpm-cache|\.gradle\\caches|go-build|composer\\cache)$/ },
+  { id: 'devcache', risk: 'safe', dir: true, unit: true, contents: true, re: /\\(npm-cache|yarn\\cache|pip\\cache|pnpm-cache|\.gradle\\caches|go-build|composer\\cache)$/ },
   { id: 'nuget', risk: 'caution', dir: true, unit: true, re: /\\\.nuget\\packages$/ },
-  { id: 'appcache', risk: 'safe', dir: true, unit: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\.*\\(cache|code cache|gpucache|cache2|cache_data|shadercache|grshadercache|dawncache|cachestorage)$/ },
+  { id: 'appcache', risk: 'safe', dir: true, unit: true, contents: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\.*\\(cache|code cache|gpucache|cache2|cache_data|shadercache|grshadercache|dawncache|cachestorage)$/ },
   { id: 'storeapp', risk: 'caution', dir: true, area: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\local\\packages\\[^\\]+$/ },
   { id: 'appdata', risk: 'caution', dir: true, area: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata\\(local|roaming|locallow)\\[^\\]+$/ },
   { id: 'onedrive', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\onedrive[^\\]*$/ },
@@ -65,9 +65,12 @@ function classify(p, isDir) {
 }
 
 // Hard stops: DiskLens never deletes or moves these, whatever the renderer asks.
-function protectedReason(p, extra = []) {
+function protectedReason(p, extra = [], opts = {}) {
   const l = norm(p);
   if (!/^[a-z]:\\./.test(l)) return 'root';
+  const inExtra = () => extra.some(x => { const e = norm(x); return l === e || e.startsWith(l + '\\') || l.startsWith(e + '\\'); });
+  // Cleaning the contents of a known temp or cache folder is allowed, even inside Windows; the folder itself stays.
+  if (opts.contents) { const c = classify(p, true); if (c && c.contents) return inExtra() ? 'app' : null; }
   const r = classify(p, true) || classify(p, false);
   if (r && r.risk === 'danger') return 'system';
   const fixed = [
@@ -77,7 +80,7 @@ function protectedReason(p, extra = []) {
     /^[a-z]:\\\$recycle\.bin(\\|$)/, /^[a-z]:\\(boot|efi|bootmgr|bootnxt|config\.msi|perflogs)(\\|$)/,
   ];
   if (fixed.some(re => re.test(l))) return 'system';
-  if (extra.some(x => { const e = norm(x); return l === e || e.startsWith(l + '\\') || l.startsWith(e + '\\'); })) return 'app';
+  if (inExtra()) return 'app';
   return null;
 }
 

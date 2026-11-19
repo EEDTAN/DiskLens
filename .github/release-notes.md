@@ -7,6 +7,22 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.3
+
+- **Dark theme**: Settings → Theme → Light, Dark, or Same as Windows.
+- **Folder tree** in Analysis and Old files: each item sits under its folder, indented, with a line to the parent folder. Click a folder to fold it.
+- **Temp and cache folders are cleaned in place**: only what is inside gets deleted, like Windows Disk Cleanup, and files in use are skipped. This also works for Temp and Logs inside Windows, so Select all no longer skips them.
+- The Recycle Bin has its own **Empty** button. Items that must stay show a lock, and DiskLens's own folders are no longer listed.
+- **Faster deleting**: sizes come from the scan instead of being counted again, several items are deleted at once, and cache folders no longer go through the Recycle Bin.
+
+## Yang baru di 0.3.3
+
+- **Tema gelap**: Pengaturan → Tema → Terang, Gelap, atau Ikuti Windows.
+- **Tampilan bertingkat** di Analisis dan File lama: tiap item ada di bawah foldernya, menjorok ke dalam, dengan garis ke folder induknya. Klik folder untuk melipatnya.
+- **Folder Temp dan cache dibersihkan isinya saja**, seperti Disk Cleanup di Windows, dan file yang sedang dipakai dilewati. Berlaku juga untuk Temp dan Logs di dalam Windows, jadi Pilih semua tidak melewatinya lagi.
+- Recycle Bin punya tombol **Kosongkan** sendiri. Item yang harus tetap ada diberi gembok, dan folder milik DiskLens sendiri tidak ditampilkan lagi.
+- **Hapus lebih cepat**: ukuran diambil dari hasil scan tanpa dihitung ulang, beberapa item dihapus sekaligus, dan folder cache tidak lewat Recycle Bin.
+
 ## What is new in 0.3.2
 
 - **Fixed**: with many items, the review window pushed the three choices (Recycle Bin, Move to another drive, Delete permanently) below the list, so only the Recycle Bin button showed. The choices now sit above the list and are always visible.

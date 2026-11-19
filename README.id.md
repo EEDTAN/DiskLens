@@ -159,6 +159,10 @@ Inggris dan Indonesia, bisa diganti di **Pengaturan**. Saat pertama dibuka, Disk
 3. Terjemahkan nilainya. Kunci, `{placeholder}`, dan tag `<b>` jangan diubah.
 4. Kirim pull request. Bahasa baru langsung muncul di Pengaturan.
 
+## Terang atau gelap
+
+**Pengaturan → Tema** punya tiga pilihan: Terang, Gelap, atau Ikuti Windows. Title bar jendela ikut menyesuaikan.
+
 ## Privasi
 
 DiskLens bekerja sepenuhnya di komputermu. Nama file, ukuran, atau apa pun tidak dikirim lewat internet, dan tidak ada telemetri.

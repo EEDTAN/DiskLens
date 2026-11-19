@@ -4,7 +4,7 @@ Object.assign(S, {
   tool: 'explorer', tray: [], known: new Map(), gone: new Set(), risk: new Map(), xsel: null,
   an: { items: null, tab: 'safe' }, dups: { state: 'idle', min: 10, prog: null, groups: [], keep: {} }, old: { months: 12, items: null },
   modal: null, op: { action: 'bin', secure: false, verify: true, origAfter: 'perm', dest: null, destFree: null, word: '', confirmed: new Set(), prog: null, result: null },
-  armed: null, history: [],
+  armed: null, history: [], closed: new Set(),
 });
 const RC = { safe: '#34d399', caution: '#fbbf24', danger: '#f87171', unknown: '#a5a1c2' };
 const ASK = new Set(['appdata', 'storeapp', 'programdata', 'pkgcache', 'wsl', 'steamgame', 'steamdl', 'nuget', 'git', 'onedrive']);
@@ -16,7 +16,8 @@ const inTray = p => S.tray.some(x => same(x.path, p));
 const remember = list => { list.forEach(x => S.known.set(x.path, x)); return list; };
 const itemByPath = p => S.known.get(p) || S.entries.find(e => e.path === p);
 function addBtnX(it) {
-  if (it.risk === 'danger' || it.rest) return `<span class="lock" title="${esc(t(it.rest ? 'tray.restLocked' : 'tray.locked'))}">🔒</span>`;
+  if (it.lock === 'recycle') return `<button class="emptyb" data-empty="${esc(it.path[0].toUpperCase())}">${esc(S.armed === it.path[0].toUpperCase() ? t('an.emptyConfirm') : t('an.emptyShort'))}</button>`;
+  if (it.risk === 'danger' || it.rest || it.lock) return `<span class="lock" title="${esc(t(it.rest ? 'tray.restLocked' : 'tray.locked'))}">🔒</span>`;
   return `<button class="add ${inTray(it.path) ? 'in' : ''}" data-tadd="${esc(it.path)}" title="${esc(t('tray.add'))}">${inTray(it.path) ? '✓' : '+'}</button>`;
 }
 
@@ -24,14 +25,18 @@ function addBtnX(it) {
 async function addTray(list) {
   const fresh = list.filter(x => x && !inTray(x.path));
   if (!fresh.length) return;
-  const [guards, risks] = await Promise.all([api.guard(fresh.map(x => x.path)), api.classifyMany(fresh.map(x => [x.path, !!x.dir]))]);
-  let blocked = 0;
+  const risks = await api.classifyMany(fresh.map(x => [x.path, !!x.dir]));
+  const contents = fresh.map((x, i) => x.contents !== undefined ? !!x.contents : !!(x.dir && risks[i].contents));
+  const guards = await api.guard(fresh.map((x, i) => ({ path: x.path, contents: contents[i] })));
+  let locked = 0, nested = 0;
   fresh.forEach((x, i) => {
-    if (guards[i] || risks[i].risk === 'danger' || x.rest || S.tray.some(y => within(x.path, y.path))) { blocked++; return; }
+    if (guards[i] || risks[i].risk === 'danger' || x.rest || x.lock) { locked++; return; }
+    if (S.tray.some(y => within(x.path, y.path))) { nested++; return; }
     S.tray = S.tray.filter(y => !within(y.path, x.path));
-    S.tray.push({ path: x.path, name: x.name, size: x.size || 0, dir: !!x.dir, rule: risks[i].rule, risk: risks[i].risk });
+    S.tray.push({ path: x.path, name: x.name, size: x.size || 0, dir: !!x.dir, rule: risks[i].rule, risk: risks[i].risk, contents: contents[i] });
   });
-  if (blocked) toast(t('tray.blocked', { n: blocked }));
+  if (locked) toast(t('tray.lockedN', { n: locked }));
+  else if (nested) toast(t('tray.nestedN', { n: nested }));
   render();
 }
 async function deleteNow(list, action) { const before = S.tray.length; await addTray(list); if (S.tray.length && (S.tray.length > before || list.every(x => inTray(x.path)))) { if (action) S.op.action = action; openConfirm(); } }
@@ -73,7 +78,8 @@ function modalHTML() {
   if (S.modal === 'done') {
     const r = o.result, ok = r.results.filter(x => x.ok), bad = r.results.filter(x => !x.ok), freed = r.results.reduce((a, x) => a + (x.freed || 0), 0);
     const head = !ok.length ? t('done.none') : o.action === 'bin' ? t('done.bin') : o.action === 'move' ? t('done.move') : t('done.perm');
-    const note = !ok.length ? '' : o.action === 'bin' || (o.action === 'move' && o.origAfter === 'bin') ? t('done.binNote') : (o.action === 'move' ? t('done.moveNote', { d: o.dest }) : '');
+    const inUse = r.results.reduce((a, x) => a + (x.skipped || 0), 0);
+    const note = (inUse ? t('done.inUse', { n: N(inUse) }) + ' ' : '') + (!ok.length ? '' : o.action === 'bin' || (o.action === 'move' && o.origAfter === 'bin') ? t('done.binNote') : (o.action === 'move' ? t('done.moveNote', { d: o.dest }) : ''));
     return `<div class="ov"><div class="md"><div class="prog"><div class="big2">${esc(F(freed))}</div><h2>${esc(head)}</h2><p style="color:var(--mute);margin:10px 0 6px;line-height:1.6">${esc(t('done.summary', { ok: ok.length, n: r.results.length }))}${note ? ' ' + esc(note) : ''}</p>
     ${bad.length ? `<div class="fails"><h4>${esc(t('done.failed', { n: bad.length }))}</h4>${bad.slice(0, 8).map(x => `<div><b>${esc(x.path)}</b><small>${esc(hasKey('err.' + x.error) ? t('err.' + x.error) : t('err.other', { e: x.error }))}</small></div>`).join('')}</div>` : ''}
     <button class="go" data-act2="donex" style="width:auto;height:auto;margin-top:18px">${esc(t('done.close'))}</button></div></div></div>`;
@@ -92,7 +98,7 @@ function modalHTML() {
   return `<div class="ov"><div class="md"><div class="mh"><h2>${esc(t('confirm.title'))}</h2><p>${esc(t('confirm.sub', { n: S.tray.length, size: F(tot) }))}</p></div>
   <div class="mact"><h4 class="mlab">${esc(t('confirm.how'))}</h4><div class="opts"><button class="op ${o.action === 'bin' ? 'on' : ''}" data-opact="bin"><b>🗑 ${esc(t('confirm.bin'))}</b><small>${esc(t('confirm.binDesc'))}</small></button><button class="op ${o.action === 'move' ? 'on' : ''}" data-opact="move"><b>📦 ${esc(t('confirm.move'))}</b><small>${esc(t('confirm.moveDesc'))}</small></button><button class="op ${o.action === 'perm' ? 'on' : ''}" data-opact="perm"><b>⚠ ${esc(t('confirm.perm'))}</b><small>${esc(t('confirm.permDesc'))}</small></button></div>
   ${o.action === 'move' ? move : o.action === 'perm' ? perm : ''}</div>
-  <div class="mb"><h4 class="mlab">${esc(t('confirm.what', { n: S.tray.length }))}</h4>${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(ruleText(x.rule, 'del'))}</p>${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}</div>
+  <div class="mb"><h4 class="mlab">${esc(t('confirm.what', { n: S.tray.length }))}</h4>${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(ruleText(x.rule, 'del'))}</p>${x.contents ? `<p class="cnote">🧹 ${esc(t('confirm.contentsNote'))}</p>` : ''}${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}</div>
   <div class="mf"><div class="tot">${esc(t('confirm.total'))}<b>${esc(F(tot))}</b></div><span class="sp"></span><button class="cancel" data-act2="opclose">${esc(t('scan.cancel'))}</button><button class="go ${o.action === 'move' ? '' : 'danger'}" id="run" ${canRun() ? '' : 'disabled'} style="width:auto;height:auto">${esc(label)}</button></div></div></div>`;
 }
 api.onOpProgress(d => {
@@ -105,7 +111,7 @@ api.onOpProgress(d => {
 async function runOp() {
   if (!canRun()) return;
   const o = S.op; S.modal = 'prog'; render();
-  const res = await api.runOp({ action: o.action, paths: S.tray.map(x => x.path), secure: o.secure, verify: o.verify, origAfter: o.origAfter, dest: o.dest });
+  const res = await api.runOp({ action: o.action, items: S.tray.map(x => ({ path: x.path, contents: !!x.contents, size: x.size })), secure: o.secure, verify: o.verify, origAfter: o.origAfter, dest: o.dest });
   if (res.error) { S.modal = 'confirm'; render(); return toast(t('err.' + res.error)); }
   o.result = res;
   const okList = res.results.filter(x => x.ok);
@@ -125,15 +131,40 @@ async function loadTool() {
   if (S.tool === 'analysis' && !S.an.items) { S.an.items = remember(await api.analysis()); render(); }
   if (S.tool === 'old' && !S.old.items) { const l = remember(await api.oldFiles(S.old.months)); const rk = await api.classifyMany(l.map(x => [x.path, false])); l.forEach((x, i) => Object.assign(x, rk[i])); S.old.items = l; render(); }
 }
-function rowX(it, total, extra = '') {
-  return `<div class="rw an xr ${S.xsel === it.path ? 'sel' : ''}" data-p="${esc(it.path)}" draggable="true" style="${gradOf(it)}">${visual(it)}<div class="nm"><b>${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</b><small>${esc(parentOf(it.path))}${extra}</small></div><div class="bar"><i style="width:${Math.max(2, it.size / (total || 1) * 100)}%"></i></div><div class="s">${esc(F(it.size))}</div>${addBtnX(it)}</div>`;
+function rowX(it, total, sub) {
+  const line = sub !== undefined ? sub : (it.contents ? t('an.contentsOnly') + ' · ' : '') + ruleText(it.rule, 'what');
+  return `<div class="rw an xr ${S.xsel === it.path ? 'sel' : ''}" data-p="${esc(it.path)}" draggable="true" style="${gradOf(it)}" title="${esc(it.path)}">${visual(it)}<div class="nm"><b>${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</b><small>${esc(line)}</small></div><div class="bar"><i style="width:${Math.max(2, it.size / (total || 1) * 100)}%"></i></div><div class="s">${esc(F(it.size))}</div>${addBtnX(it)}</div>`;
+}
+function treeHTML(list, total, subOf) {
+  const rootPath = S.root.replace(/[\\/]+$/, ''), top = { path: rootPath, kids: new Map(), items: [], size: 0, count: 0 };
+  for (const it of list) {
+    const rel = parentOf(it.path).replace(/[\\/]+$/, '').slice(rootPath.length).split(/[\\/]+/).filter(Boolean);
+    let n = top; n.size += it.size; n.count++;
+    for (const part of rel) {
+      if (!n.kids.has(part)) n.kids.set(part, { name: part, path: n.path + '\\' + part, kids: new Map(), items: [], size: 0, count: 0 });
+      n = n.kids.get(part); n.size += it.size; n.count++;
+    }
+    n.items.push(it);
+  }
+  // A chain of folders with nothing else in it is shown as one line: Users\Name\AppData\Local
+  const squash = n => {
+    if (n !== top) while (n.kids.size === 1 && !n.items.length) { const c = [...n.kids.values()][0]; n.name += '\\' + c.name; n.path = c.path; n.kids = c.kids; n.items = c.items; }
+    n.kids.forEach(squash);
+  };
+  squash(top);
+  const body = n => n.items.sort((a, b) => b.size - a.size).map(it => rowX(it, total, subOf ? subOf(it) : undefined)).join('')
+    + [...n.kids.values()].sort((a, b) => b.size - a.size).map(k => {
+      const closed = S.closed.has(k.path);
+      return `<div class="tf ${closed ? 'closed' : ''}" data-tf="${esc(k.path)}" title="${esc(k.path)}"><span class="chev">▾</span><span class="fic">${FOLDER}</span><b>${esc(k.name)}</b><small>${esc(t('ex.items', { n: N(k.count) }))}</small><span class="fs">${esc(F(k.size))}</span></div>${closed ? '' : `<div class="tg">${body(k)}</div>`}`;
+    }).join('');
+  return body(top);
 }
 function analysisHTML() {
   if (!S.an.items) return `<div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
   const all = S.an.items.filter(x => !gone(x.path)), by = k => all.filter(x => x.risk === k), list = by(S.an.tab), tot = list.reduce((a, x) => a + x.size, 0);
   const tabs = ['safe', 'caution', 'danger'].map(k => { const l = by(k); return `<button class="at ${S.an.tab === k ? 'on' : ''}" data-antab="${k}" style="--c:${RC[k]}"><i></i><b>${esc(t('risk.' + k))}</b><span>${esc(F(l.reduce((a, x) => a + x.size, 0)))}</span><small>${esc(t('ex.items', { n: N(l.length) }))}</small></button>`; }).join('');
   const shown = list.slice(0, 400);
-  return `<div class="ats">${tabs}</div>${pickable(shown).length ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? shown.map(x => rowX(x, tot)).join('') : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
+  return `<div class="ats">${tabs}</div>${pickable(shown).length ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? treeHTML(shown, tot) : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
 }
 function riskPanel(it) {
   if (!it) {
@@ -145,7 +176,7 @@ function riskPanel(it) {
   const preview = (k === 'foto' || k === 'video') ? `<div class="card pv"><div class="th pvimg" ${k === 'foto' ? `style="background-image:url('${fileUrl(it.path)}')"` : `data-pv="${esc(it.path)}"`}>${k === 'video' ? '<div class="play"><i></i></div>' : ''}</div></div>` : '';
   return `<div class="hero">${riskChip(it.risk)}<h2>${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</h2><div class="sz">${esc(F(it.size))}</div><small>${esc(parentOf(it.path))}${it.mtime ? ' · ' + esc(fdate(it.mtime)) : ''}</small></div>
   <div class="det">${preview}<div class="card"><h4>${esc(t('an.what'))}</h4><p>${esc(ruleText(it.rule, 'what'))}</p></div><div class="card w" style="--c:${RC[it.risk] || RC.unknown}"><h4>${esc(t('an.ifDeleted'))}</h4><p>${esc(ruleText(it.rule, 'del'))}</p></div>${tip ? `<div class="card tip"><h4>${esc(t('an.tip'))}</h4><p>${esc(tip)}</p></div>` : ''}
-  <div>${letter ? `<button class="big" data-empty="${letter}">${esc(S.armed === letter ? t('an.emptyConfirm') : t('an.emptyBin'))}</button>` : (it.risk === 'danger' || it.rest ? `<button class="big off">🔒 ${esc(t(it.rest ? 'tray.restLocked' : 'tray.locked'))}</button>` : `<button class="big" data-tadd="${esc(it.path)}">${esc(inTray(it.path) ? t('tray.inTray') : t('tray.add'))}</button>`)}
+  <div>${letter ? `<button class="big" data-empty="${letter}">${esc(S.armed === letter ? t('an.emptyConfirm') : t('an.emptyBin'))}</button>` : (it.risk === 'danger' || it.rest || it.lock ? `<button class="big off">🔒 ${esc(t(it.rest ? 'tray.restLocked' : 'tray.locked'))}</button>` : `<button class="big" data-tadd="${esc(it.path)}">${esc(inTray(it.path) ? t('tray.inTray') : t('tray.add'))}</button>`)}
   <button class="big ghost" data-reveal="${esc(it.path)}">${esc(t('an.openLocation'))}</button><button class="big ghost" data-show="${esc(it.path)}">${esc(t('ctx.show'))}</button></div></div>`;
 }
 async function reveal(p) {
@@ -185,7 +216,7 @@ function oldHTML() {
   const seg = `<div class="tb2 inl"><span class="info">${esc(t('old.intro'))}</span><span class="sp"></span>${S.old.items ? collectAllBar(S.old.items.filter(v => !gone(v.path)).slice(0, 400)) : ''}<div class="seg">${[6, 12, 24, 36].map(m => `<button class="${S.old.months === m ? 'on' : ''}" data-omonths="${m}">${esc(t('old.months', { n: m }))}</button>`).join('')}</div></div>`;
   if (!S.old.items) return seg + `<div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
   const list = S.old.items.filter(x => !gone(x.path)), tot = list.reduce((a, x) => a + x.size, 0);
-  return seg + `<div class="exp">${list.length ? `<p class="osum">${esc(t('old.sum', { n: N(list.length), size: F(tot) }))}</p>` + list.slice(0, 400).map(x => rowX(x, tot, ' · ' + esc(t('old.changed', { d: fdate(x.mtime) })))).join('') : `<div class="empty2">${esc(t('old.none'))}</div>`}</div>`;
+  return seg + `<div class="exp">${list.length ? `<p class="osum">${esc(t('old.sum', { n: N(list.length), size: F(tot) }))}</p>` + treeHTML(list.slice(0, 400), tot, x => t('old.changed', { d: fdate(x.mtime) })) : `<div class="empty2">${esc(t('old.none'))}</div>`}</div>`;
 }
 
 /* ---------- tool frame ---------- */
@@ -193,7 +224,7 @@ function toolTop() {
   const ti = { analysis: 'nav.analysis', dups: 'nav.dups', old: 'ov.old' }[S.tool], sub = { analysis: 'an.sub', dups: 'dups.sub', old: 'old.sub' }[S.tool];
   return `<div class="tb1"><div style="flex:1"><small style="color:var(--mute);font-size:13px">${esc(t(sub))}</small><h1 style="font-size:26px;letter-spacing:-.7px">${esc(t(ti))}</h1></div></div>`;
 }
-const pickable = list => list.filter(it => it.risk !== 'danger' && !it.rest);
+const pickable = list => list.filter(it => it.risk !== 'danger' && !it.rest && !it.lock);
 const addable = list => pickable(list).filter(it => !inTray(it.path));
 function collectAllBar(list) {
   const all = pickable(list), l = addable(list);
@@ -211,7 +242,7 @@ function toolCtx(ev) {
   const it = itemByPath(row.dataset.p); if (!it) return;
   S.xsel = it.path; document.querySelectorAll('.xr').forEach(x => x.classList.toggle('sel', x.dataset.p === it.path)); $('panel').innerHTML = toolPanel(); applyPreviewThumbs();
   const L = [];
-  if (it.risk !== 'danger' && !it.rest) L.push({ t: t('tray.add'), ic: '🧺', f: () => addTray([it]) }, { t: t('ctx.delete'), ic: '🗑', k: 'Del', f: () => deleteNow([it]) }, { sep: true });
+  if (it.risk !== 'danger' && !it.rest && !it.lock) L.push({ t: t('tray.add'), ic: '🧺', f: () => addTray([it]) }, { t: t('ctx.delete'), ic: '🗑', k: 'Del', f: () => deleteNow([it]) }, { sep: true });
   L.push({ t: t('an.openLocation'), ic: '📂', f: () => reveal(it.path) }, { t: t('ctx.show'), ic: '🗂', f: () => api.show(it.path) }, { t: t('ctx.copyPath'), ic: '📋', f: () => copyPaths([it]) });
   if (!it.dir) L.push({ t: t('ctx.openWith'), ic: '▶', f: () => api.open(it.path) });
   showCtx(ev.clientX, ev.clientY, L);
@@ -228,6 +259,7 @@ document.addEventListener('click', async ev => {
   if (el = c('[data-show]')) return api.show(el.dataset.show);
   if (el = c('[data-analyze]')) { const e = itemByPath(el.dataset.analyze) || { path: el.dataset.analyze, name: el.dataset.analyze.split(/[\\/]/).pop(), size: 0 }; const r = await api.classifyMany([[e.path, !!e.dir]]); const it = { ...e, ...r[0] }; S.known.set(it.path, it); S.tool = 'analysis'; S.xsel = it.path; render(); return loadTool(); }
   if (el = c('[data-empty]')) { const l = el.dataset.empty; if (S.armed !== l) { S.armed = l; $('panel').innerHTML = toolPanel(); setTimeout(() => { if (S.armed === l) { S.armed = null; if ($('panel') && S.tool !== 'explorer') $('panel').innerHTML = toolPanel(); } }, 4000); return; } S.armed = null; toast(t('an.emptying')); const ok = await api.emptyBin(l); toast(ok ? t('an.emptied') : t('err.other', { e: 'Recycle Bin' })); S.drives = await api.drives(); S.gone.add(l + ':\\$Recycle.Bin'); return render(); }
+  if (el = c('[data-tf]')) { const k = el.dataset.tf; S.closed.has(k) ? S.closed.delete(k) : S.closed.add(k); return render(); }
   if (el = c('[data-dmin]')) { S.dups.min = +el.dataset.dmin; return render(); }
   if (el = c('[data-dkeep]')) { S.dups.keep[el.dataset.dkeep] = el.dataset.path; S.tray = S.tray.filter(x => !same(x.path, el.dataset.path)); return render(); }
   if (el = c('[data-dcol]')) { const x = dupGroups().find(g => g.gi === +el.dataset.dcol); return x && addTray(dupExtras(x)); }

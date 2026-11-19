@@ -160,7 +160,6 @@
   "tray.empty": "Seret file atau folder ke sini, atau tekan +. Kumpulkan dulu, lalu bersihkan sekaligus.",
   "tray.clear": "Kosongkan",
   "tray.next": "Hapus",
-  "tray.blocked": "{n} item dilewati: item sistem atau sudah ada di dalam folder di keranjang.",
   "tray.locked": "Dilindungi: DiskLens tidak akan menghapusnya",
   "tray.restLocked": "Ini sisa isi sebuah folder. Buka foldernya untuk memilih item.",
   "confirm.title": "Periksa dulu sebelum lanjut",
@@ -405,5 +404,16 @@
   "upd.error": "Tidak bisa mengecek pembaruan ({e}).",
   "upd.auto": "Cek pembaruan setiap DiskLens dibuka",
   "confirm.how": "Mau diapakan?",
-  "confirm.what": "Yang akan diproses ({n} item)"
+  "confirm.what": "Yang akan diproses ({n} item)",
+  "tray.lockedN": "{n} item dilewati karena dilindungi (item sistem).",
+  "tray.nestedN": "{n} item sudah termasuk di dalam folder yang ada di keranjang.",
+  "an.contentsOnly": "Isinya saja",
+  "an.emptyShort": "Kosongkan",
+  "confirm.contentsNote": "Hanya isinya yang dibersihkan, langsung, seperti Disk Cleanup di Windows. Foldernya tetap ada, dan file yang sedang dipakai dilewati.",
+  "done.inUse": "{n} file sedang dipakai dan dilewati.",
+  "err.CACHEMOVE": "Folder temp dan cache dibersihkan, bukan dipindah",
+  "settings.theme": "Tema",
+  "theme.light": "Terang",
+  "theme.dark": "Gelap",
+  "theme.system": "Ikuti Windows"
 }
