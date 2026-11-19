@@ -1,0 +1,30 @@
+{
+  "name": "disklens",
+  "version": "0.1.0",
+  "description": "Disk space analyzer with a File Explorer feel. See what is big, and learn what happens before you delete it.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "EEDTAN",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^45.4.1"
+  },
+  "homepage": "https://github.com/EEDTAN/DiskLens",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EEDTAN/DiskLens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/EEDTAN/DiskLens/issues"
+  },
+  "keywords": [
+    "disk",
+    "disk-usage",
+    "disk-analyzer",
+    "file-explorer",
+    "electron",
+    "windows"
+  ]
+}
