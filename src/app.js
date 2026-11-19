@@ -271,10 +271,31 @@ function openViewer(e) {
   const list = S.view.filter(x => ['foto', 'video'].includes(kindOf(x))); if (!list.length) return;
   S.viewer = { list, i: Math.max(0, list.findIndex(x => x.path === e.path)) }; render();
 }
+// One photo or video in the viewer. Both sit in the same grid cell, so the old one can slide out while the new one slides in.
+const vmedia = e => kindOf(e) === 'foto' ? `<img class="vimg2" src="${fileUrl(e.path)}" alt="">`
+  : `<div class="vm"><video class="vimg2" id="vid" src="${fileUrl(e.path)}" controls autoplay></video><div class="vfail" id="vfail" hidden>${esc(t('viewer.noPlay'))}</div></div>`;
+const vtitle = e => `<b>${esc(e.name)}</b><small>${esc(t('kind.' + kindOf(e)))} · ${esc(F(e.size))} · ${esc(fdate(e.mtime))}</small>`;
+// Next or previous: only the picture changes, with a short slide. The viewer itself stays open.
+function viewerGo(d) {
+  const v = S.viewer, n = v.list.length; if (n < 2) return;
+  v.i = (v.i + d + n) % n;
+  const stage = document.querySelector('.vstage'); if (!stage) return render();
+  const e = v.list[v.i], dir = d > 0 ? 'r' : 'l';
+  stage.querySelectorAll(':scope > *').forEach(old => {
+    if (old.classList.contains('vout')) return old.remove();
+    old.querySelectorAll('video').forEach(x => x.pause()); old.removeAttribute('id'); old.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    old.classList.add('vout', 'to-' + dir); old.addEventListener('animationend', () => old.remove(), { once: true });
+  });
+  stage.insertAdjacentHTML('beforeend', vmedia(e));
+  const fresh = stage.lastElementChild; fresh.classList.add('vin', 'from-' + dir);
+  document.querySelector('.vtop > div').innerHTML = vtitle(e);
+  document.querySelector('.vcount').textContent = `${v.i + 1} / ${n} · ${t('viewer.hint')}`;
+  const vid = $('vid'); if (vid) vid.onerror = () => { const f = $('vfail'); if (f) f.hidden = false; };
+}
 function viewerHTML() {
   if (!S.viewer) return ''; const v = S.viewer, e = v.list[v.i], k = kindOf(e), n = v.list.length;
-  return `<div class="vw"><div class="vtop"><div><b>${esc(e.name)}</b><small>${esc(t('kind.' + k))} · ${esc(F(e.size))} · ${esc(fdate(e.mtime))}</small></div><span class="sp"></span><button class="vb" data-act="vopen">↗ ${esc(t('viewer.openDefault'))}</button><button class="vb x" data-act="vclose" title="Esc">✕</button></div>
-  <button class="vnav l" data-vnav="-1" ${n > 1 ? '' : 'disabled'}>‹</button><div class="vstage">${k === 'foto' ? `<img class="vimg2" src="${fileUrl(e.path)}" alt="">` : `<video class="vimg2" id="vid" src="${fileUrl(e.path)}" controls autoplay></video><div class="vfail" id="vfail" hidden>${esc(t('viewer.noPlay'))}</div>`}</div><button class="vnav r" data-vnav="1" ${n > 1 ? '' : 'disabled'}>›</button><div class="vcount">${v.i + 1} / ${n} · ${esc(t('viewer.hint'))}</div></div>`;
+  return `<div class="vw"><div class="vtop"><div>${vtitle(e)}</div><span class="sp"></span><button class="vb" data-act="vopen">↗ ${esc(t('viewer.openDefault'))}</button><button class="vb x" data-act="vclose" title="Esc">✕</button></div>
+  <button class="vnav l" data-vnav="-1" ${n > 1 ? '' : 'disabled'}>‹</button><div class="vstage">${vmedia(e)}</div><button class="vnav r" data-vnav="1" ${n > 1 ? '' : 'disabled'}>›</button><div class="vcount">${v.i + 1} / ${n} · ${esc(t('viewer.hint'))}</div></div>`;
 }
 async function openProps(list) { S.props = { list, stats: await Promise.all(list.map(e => api.stat(e.path))) }; render(); }
 function propsHTML() {
@@ -401,7 +422,7 @@ document.addEventListener('click', ev => {
   if (el = c('[data-mode]')) { S.mode = el.dataset.mode; return render(); }
   if (el = c('[data-xt]')) return toggleOpen(el.dataset.xt);
   if (el = c('[data-sort]')) { const k = el.dataset.sort; if (S.sortK === k) S.sortD *= -1; else { S.sortK = k; S.sortD = k === 'name' ? 1 : -1; } return render(); }
-  if (el = c('[data-vnav]')) { const v = S.viewer, n = v.list.length; v.i = (v.i + +el.dataset.vnav + n) % n; return render(); }
+  if (el = c('[data-vnav]')) return viewerGo(+el.dataset.vnav);
   if (el = c('[data-act]')) {
     const a = el.dataset.act, sel = selList();
     if (a === 'home') { api.cancelScan(); S.screen = 'home'; return render(); }
@@ -439,7 +460,7 @@ addEventListener('blur', closeCtx);
 document.addEventListener('keydown', ev => {
   const k = ev.key, ctrl = ev.ctrlKey || ev.metaKey;
   if (k === 'Escape') { if ($('ctx')) return closeCtx(); if (S.props) { S.props = null; return render(); } if (S.viewer) { S.viewer = null; return render(); } if (S.screen === 'work' && S.sel.size) { S.sel = new Set(); return refreshSel(); } return; }
-  if (S.viewer) { const v = S.viewer, n = v.list.length; if (k === 'ArrowRight') { v.i = (v.i + 1) % n; render(); } if (k === 'ArrowLeft') { v.i = (v.i - 1 + n) % n; render(); } return; }
+  if (S.viewer) { if (k === 'ArrowRight') viewerGo(1); if (k === 'ArrowLeft') viewerGo(-1); return; }
   if (S.screen !== 'work' || S.props || S.modal || S.tool !== 'explorer' || /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
   const sel = selList();
   if (ctrl && k.toLowerCase() === 'a') { ev.preventDefault(); S.sel = new Set(S.view.map(e => e.path)); return refreshSel(); }

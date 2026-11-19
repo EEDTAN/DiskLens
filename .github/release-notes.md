@@ -7,6 +7,16 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.8
+
+- **Open folders in Analysis**: folder items have a ▸. Click it or double-click the row to see what is inside, level by level. Items inside a temp or cache folder are labelled like the folder, and protected ones show a lock.
+- **Smoother photo and video viewer**: the arrow keys and the ‹ › buttons now slide the next photo or video in. The viewer no longer closes and reopens on every step.
+
+## Yang baru di 0.3.8
+
+- **Buka folder di Analisis**: item folder punya tombol ▸. Klik tombol itu atau klik dua kali barisnya untuk melihat isinya, tingkat demi tingkat. Isi folder temp atau cache diberi label seperti foldernya, dan yang dilindungi diberi gembok.
+- **Penampil foto dan video lebih halus**: tombol panah dan tombol ‹ › sekarang menggeser foto atau video berikutnya masuk. Penampil tidak lagi tertutup lalu terbuka ulang di setiap langkah.
+
 ## What is new in 0.3.7
 
 - **Photos and videos fit the screen**: the viewer showed big photos at full size, so they were zoomed in and cut off. Now every photo and video is shown whole, keeps its shape, and grows or shrinks with the window.
