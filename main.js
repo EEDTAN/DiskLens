@@ -5,7 +5,9 @@ const os = require('os');
 const { Worker } = require('worker_threads');
 const { execFile } = require('child_process');
 
-let win = null, worker = null;
+let win = null, worker = null, lastRoot = null, dupWorker = null;
+const rules = require('./rules');
+const ops = require('./ops');
 const scans = new Map(); // scan root -> { tree }
 const norm = p => p.replace(/[\\/]+$/, '').toLowerCase();
 
@@ -86,7 +88,7 @@ ipcMain.handle('scan:start', (_, { root }) => {
     if (!win || win.isDestroyed()) return;
     if (m.type === 'progress') win.webContents.send('scan:progress', m);
     if (m.type === 'done') {
-      scans.set(norm(root), { tree: m.tree });
+      scans.set(norm(root), { tree: m.tree, root }); lastRoot = root;
       win.webContents.send('scan:done', { root, bytes: m.bytes, files: m.files, dirs: m.dirs, cats: m.cats, unread: m.unread, linked: m.linked, ms: Date.now() - t0 });
       worker = null;
     }
@@ -163,3 +165,71 @@ ipcMain.handle('shell:open', (_, p) => shell.openPath(p));
 ipcMain.handle('shell:show', (_, p) => { shell.showItemInFolder(p); return true; });
 ipcMain.handle('shell:external', (_, url) => { if (/^https:\/\/github\.com\//.test(url)) shell.openExternal(url); return true; });
 ipcMain.handle('clipboard:write', (_, text) => { clipboard.writeText(String(text)); return true; });
+
+/* ---------- analysis: what is this, what happens if deleted ---------- */
+const send = (ch, d) => { if (win && !win.isDestroyed()) win.webContents.send(ch, d); };
+const scanOf = p => { const np = norm(p || lastRoot || ''); for (const [r, s] of scans) if (np === r || np.startsWith(r + '\\') || np.startsWith(r + '/')) return s; return null; };
+const join = (a, b) => a.replace(/[\\/]+$/, '') + '\\' + b;
+const appPaths = () => [app.getAppPath(), path.dirname(process.execPath), app.getPath('userData')];
+ipcMain.handle('analysis:run', () => {
+  const s = scanOf(lastRoot); if (!s) return [];
+  return rules.analyze(s.tree, s.root).slice(0, 1500);
+});
+ipcMain.handle('analysis:classify', (_, p, isDir) => { const r = rules.classify(p, !!isDir); return r ? { rule: r.id, risk: r.risk } : { rule: null, risk: 'unknown' }; });
+ipcMain.handle('analysis:classifyMany', (_, list) => list.map(([p, d]) => { const r = rules.classify(p, !!d); return r ? { rule: r.id, risk: r.risk } : { rule: null, risk: 'unknown' }; }));
+ipcMain.handle('ops:guard', (_, paths) => paths.map(p => rules.protectedReason(p, appPaths())));
+
+/* ---------- old files: big files not changed for a long time ---------- */
+const SYSTEM_AREA = /^[a-z]:\\(windows|program files|program files \(x86\)|programdata|\$recycle\.bin|system volume information|recovery)$/i;
+ipcMain.handle('old:list', (_, months) => {
+  const s = scanOf(lastRoot); if (!s) return [];
+  const limit = Date.now() - months * 30.44 * 86400000, out = [];
+  (function walk(node, p) {
+    if (SYSTEM_AREA.test(p)) return;
+    for (const [name, size, mtime] of node.b || []) if (mtime && mtime < limit) out.push({ path: join(p, name), name, size, mtime, dir: false });
+    for (const c of node.c) walk(c, join(p, c.n));
+  })(s.tree, s.root);
+  return out.sort((a, b) => b.size - a.size).slice(0, 1000);
+});
+
+/* ---------- duplicates (worker) ---------- */
+ipcMain.handle('dups:start', (_, { root, minSize }) => {
+  if (dupWorker) dupWorker.terminate();
+  dupWorker = new Worker(path.join(__dirname, 'dups.js'), { workerData: { root, minSize } });
+  dupWorker.on('message', m => { if (m.type === 'progress') send('dups:progress', m); else { send('dups:done', m); dupWorker = null; } });
+  dupWorker.on('error', e => { send('dups:done', { error: String(e), groups: [] }); dupWorker = null; });
+  return true;
+});
+ipcMain.handle('dups:cancel', () => { if (dupWorker) { dupWorker.terminate(); dupWorker = null; } return true; });
+
+/* ---------- clean-up actions ---------- */
+// Keep the scan tree in step with what was removed, so sizes stay right without a rescan.
+function forget(p, freed, gone) {
+  const s = scanOf(p); if (!s || !freed) return;
+  const parts = p.slice(s.root.replace(/[\\/]+$/, '').length).split(/[\\/]+/).filter(Boolean), chain = [s.tree];
+  for (const part of parts.slice(0, -1)) { const n = chain[chain.length - 1].c.find(k => k.n.toLowerCase() === part.toLowerCase()); if (!n) return; chain.push(n); }
+  const parent = chain[chain.length - 1], name = (parts[parts.length - 1] || '').toLowerCase();
+  for (const n of chain) n.s = Math.max(0, n.s - freed);
+  const kid = parent.c.find(k => k.n.toLowerCase() === name);
+  if (gone) { parent.c = parent.c.filter(k => k.n.toLowerCase() !== name); if (parent.b) parent.b = parent.b.filter(b => b[0].toLowerCase() !== name); }
+  else if (kid) kid.s = Math.max(0, kid.s - freed);
+}
+let opBusy = false;
+ipcMain.handle('ops:run', async (_, opts) => {
+  if (opBusy) return { error: 'BUSY' };
+  opBusy = true;
+  try {
+    const results = await ops.run(opts, d => send('ops:progress', d), appPaths());
+    for (const r of results) forget(r.path, r.freed, r.ok);
+    const s = scanOf(lastRoot);
+    return { results, rootBytes: s ? s.tree.s : null };
+  } finally { opBusy = false; }
+});
+ipcMain.handle('ops:cancel', () => { ops.cancel(); return true; });
+ipcMain.handle('dialog:dest', async () => { const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] }); return r.canceled ? null : r.filePaths[0]; });
+ipcMain.handle('fs:free', async (_, p) => { try { return await ops.freeBytes(p); } catch { return null; } });
+ipcMain.handle('recycle:empty', (_, letter) => new Promise(resolve => {
+  if (!/^[A-Za-z]$/.test(letter)) return resolve(false);
+  execFile('powershell.exe', ['-NoProfile', '-Command', `Clear-RecycleBin -DriveLetter ${letter} -Force -ErrorAction SilentlyContinue`], { windowsHide: true, timeout: 120000 }, err => resolve(!err));
+}));
+ipcMain.handle('scan:info', () => { const s = scanOf(lastRoot); return s ? { bytes: s.tree.s, files: s.tree.f, dirs: s.tree.d } : null; });

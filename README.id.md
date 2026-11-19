@@ -7,15 +7,30 @@
 </p>
 
 <p align="center">
-  <img alt="Versi" src="https://img.shields.io/badge/versi-0.1.0-8b5cff?style=for-the-badge">
+  <a href="https://github.com/EEDTAN/DiskLens/releases/latest"><img alt="Rilis terbaru" src="https://img.shields.io/github/v/release/EEDTAN/DiskLens?color=8b5cff&label=unduh&style=for-the-badge"></a>
   <img alt="Platform" src="https://img.shields.io/badge/Windows-10%20%7C%2011-c76cff?style=for-the-badge">
   <img alt="Lisensi" src="https://img.shields.io/badge/lisensi-MIT-ff80d8?style=for-the-badge">
-  <img alt="Dibuat dengan Electron" src="https://img.shields.io/badge/dibuat%20dengan-Electron-38bdf8?style=for-the-badge">
+  <img alt="Bahasa" src="https://img.shields.io/badge/bahasa-EN%20%7C%20ID-38bdf8?style=for-the-badge">
 </p>
 
-DiskLens menunjukkan folder dan file mana yang paling banyak memakan ruang, dan kamu bisa menelusurinya seperti di File Explorer. Yang terbesar ada di atas, setiap folder menampilkan seberapa besar porsinya, dan foto serta video punya thumbnail asli.
+DiskLens menunjukkan folder dan file mana yang paling banyak memakan ruang, dan kamu bisa menelusurinya seperti di File Explorer. DiskLens juga menjelaskan apa setiap item itu dan apa yang rusak kalau dihapus. Kalau sudah siap, kumpulkan yang mau dibuang lalu bersihkan sekaligus: ke Recycle Bin, pindah ke drive lain, atau hapus permanen.
 
-Tujuan besarnya: menjelaskan setiap item sebelum kamu menghapusnya, yaitu apa itu dan apa yang rusak kalau dihapus. Bagian itu sedang dikerjakan (lihat [Selanjutnya](#selanjutnya)). Versi 0.1 hanya membaca disk dan tidak pernah mengubah atau menghapus apa pun.
+Kamu tidak perlu lagi bertanya ke orang lain (atau ke AI) apakah sebuah folder aman dihapus. DiskLens yang memberi tahu, dan DiskLens menolak menyentuh Windows serta program yang terpasang.
+
+## Unduh
+
+| | |
+|---|---|
+| **Installer** | [**DiskLens-Setup.exe**](https://github.com/EEDTAN/DiskLens/releases/latest/download/DiskLens-Setup.exe), menambah menu Start dan shortcut di desktop |
+| **Portable** | [**DiskLens-Portable.exe**](https://github.com/EEDTAN/DiskLens/releases/latest/download/DiskLens-Portable.exe), tanpa instalasi, bisa dijalankan dari folder mana pun atau flashdisk |
+
+Windows 10 dan 11, 64-bit. Semua versi ada di halaman [Releases](https://github.com/EEDTAN/DiskLens/releases).
+
+<details>
+<summary>Windows menampilkan "Windows protected your PC"</summary>
+
+DiskLens belum ditandatangani secara digital (sertifikatnya berbayar), jadi SmartScreen memberi peringatan beberapa kali pertama. Klik **More info**, lalu **Run anyway**. Seluruh kode sumbernya ada di repo ini, dan installer-nya dibuat oleh GitHub Actions dari kode itu.
+</details>
 
 ---
 
@@ -23,49 +38,101 @@ Tujuan besarnya: menjelaskan setiap item sebelum kamu menghapusnya, yaitu apa it
 
 ### 1. Pilih drive atau folder
 
-Semua drive di komputermu tampil beserta seberapa penuh isinya. Scan satu drive utuh, atau pilih satu folder saja.
+Semua drive tampil beserta seberapa penuh isinya. Scan satu drive utuh, atau pilih satu folder.
 
 <p align="center"><img src="docs/screenshots/home.png" alt="Beranda dengan daftar drive" width="88%"></p>
 
 ### 2. Lihat proses scan
 
-Angka terus naik selama DiskLens membaca, dan file terbesar yang ditemukan langsung muncul. Link dan junction dilewati supaya tidak ada yang terhitung dua kali, dan file dengan beberapa hard link (banyak di `Windows\WinSxS`) dihitung sekali.
+Angka terus naik selama DiskLens membaca, dan file terbesar langsung muncul begitu ditemukan. Link dan junction dilewati supaya tidak ada yang terhitung dua kali, dan file dengan beberapa hard link (banyak di `Windows\WinSxS`) dihitung sekali. Scan hanya membaca.
 
 <p align="center"><img src="docs/screenshots/scan.png" alt="Scan berjalan dengan angka langsung" width="88%"></p>
 
-### 3. Lihat hasilnya
+### 3. Lihat hasil dan pilih alat
 
-Berapa banyak isi drive berupa video, foto, arsip, program, dan lainnya, plus sisa ruang kosong di drive.
+Ruang per jenis file, sisa ruang kosong, dan empat cara melihat lebih dekat: **Penjelajah**, **Analisis**, **Duplikat**, dan **File lama**.
 
-<p align="center"><img src="docs/screenshots/results.png" alt="Halaman hasil dengan ruang per jenis file" width="88%"></p>
+<p align="center"><img src="docs/screenshots/results.png" alt="Halaman hasil dengan ruang per jenis file dan empat alat" width="88%"></p>
 
-### 4. Jelajahi seperti File Explorer
+### 4. Penjelajah: seperti File Explorer
 
-Tombol mundur, maju, dan naik, alamat yang bisa diklik, cari di dalam folder, urutkan menurut nama, ukuran, atau tanggal. Setiap baris menampilkan porsinya di folder itu, jadi yang paling berat langsung terlihat.
+Tombol mundur, maju, dan naik, alamat yang bisa diklik, pencarian, urutan menurut nama, ukuran, atau tanggal. Setiap baris menampilkan porsinya di folder itu, jadi yang paling berat langsung terlihat.
 
 <p align="center"><img src="docs/screenshots/explorer.png" alt="Daftar Penjelajah diurutkan menurut ukuran" width="88%"></p>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/photos.png" alt="Tampilan grid dengan thumbnail foto"><p align="center"><b>Grid dengan thumbnail asli</b><br>Diambil dari Windows, sama dengan yang tampil di File Explorer.</p></td>
-    <td width="50%"><img src="docs/screenshots/videos.png" alt="Tampilan grid dengan thumbnail video"><p align="center"><b>Video juga</b><br>Cuplikan video sebagai thumbnail, siap dipratinjau.</p></td>
+    <td width="50%"><img src="docs/screenshots/photos.png" alt="Grid dengan thumbnail foto"><p align="center"><b>Thumbnail asli</b><br>Diambil dari Windows, sama dengan yang tampil di File Explorer.</p></td>
+    <td width="50%"><img src="docs/screenshots/videos.png" alt="Grid dengan thumbnail video"><p align="center"><b>Video juga</b><br>Cuplikan video sebagai thumbnail, siap dipratinjau.</p></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/context-menu.png" alt="Menu klik kanan"><p align="center"><b>Menu klik kanan</b><br>Buka, buka dengan aplikasi bawaan, pratinjau, salin path, tampilkan di File Explorer, properti.</p></td>
+    <td width="50%"><img src="docs/screenshots/context-menu.png" alt="Menu klik kanan"><p align="center"><b>Menu klik kanan</b><br>Buka, buka dengan aplikasi bawaan, pratinjau, tambah ke keranjang, analisis, salin path, properti.</p></td>
     <td width="50%"><img src="docs/screenshots/viewer.png" alt="Pratinjau foto layar penuh"><p align="center"><b>Pratinjau</b><br>Klik dua kali foto atau video. Tombol panah pindah ke file berikutnya.</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/map.png" alt="Tampilan peta ukuran"><p align="center"><b>Peta ukuran</b><br>Setiap item jadi kotak seukuran ruang yang dipakainya.</p></td>
-    <td width="50%"><img src="docs/screenshots/settings.png" alt="Pengaturan dengan pilihan bahasa"><p align="center"><b>Bahasamu</b><br>Saat ini Inggris dan Indonesia. Menambah bahasa cukup menambah satu file.</p></td>
   </tr>
 </table>
 
-### Pintasan keyboard
+<p align="center"><img src="docs/screenshots/map.png" alt="Peta ukuran" width="70%"><br><b>Peta ukuran</b>: setiap item jadi kotak seukuran ruang yang dipakainya.</p>
+
+### 5. Analisis: mana yang aman dihapus
+
+DiskLens mengenali cache, file sementara, installer, data crash, sisa Windows, folder game, cache developer, disk WSL, OneDrive, dan banyak lagi, lalu mengelompokkannya jadi tiga:
+
+- **Aman dihapus**: cache dan sisa file yang dibuat ulang sendiri atau tidak diperlukan
+- **Cek dulu**: file milikmu, data aplikasi, dan program terpasang
+- **Jangan dihapus**: Windows dan program terpasang. DiskLens tidak akan menghapusnya.
+
+Klik satu item untuk membaca **Apa ini?**, **Kalau dihapus**, dan sering juga **Cara yang lebih baik** (misalnya pakai Disk Cleanup untuk `WinSxS`, atau copot program lewat Pengaturan, bukan menghapus foldernya).
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/analysis.png" alt="Analisis: aman dihapus"></td>
+    <td width="50%"><img src="docs/screenshots/analysis-check.png" alt="Analisis: cek dulu"></td>
+  </tr>
+</table>
+
+### 6. Kumpulkan dulu, bersihkan sekaligus
+
+Seret baris ke keranjang di bawah, atau tekan **+**, dari alat mana pun. Setelah selesai, tekan **Periksa**. Setiap item ditampilkan lagi beserta akibatnya kalau dihapus, dan data aplikasi meminta konfirmasi tambahan.
+
+<p align="center"><img src="docs/screenshots/collector.png" alt="Keranjang berisi item" width="88%"></p>
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/review.png" alt="Periksa: Recycle Bin"><p align="center"><b>Recycle Bin</b><br>Bisa dikembalikan kapan saja.</p></td>
+    <td width="33%"><img src="docs/screenshots/review-move.png" alt="Periksa: pindah ke drive lain"><p align="center"><b>Pindah ke drive lain</b><br>Disalin, setiap file diperiksa dengan SHA-256, lalu yang asli dihapus.</p></td>
+    <td width="33%"><img src="docs/screenshots/review-perm.png" alt="Periksa: hapus permanen"><p align="center"><b>Hapus permanen</b><br>Ketik kata konfirmasi. Ada pilihan timpa 3x.</p></td>
+  </tr>
+</table>
+
+### 7. Duplikat
+
+Mencari file yang isinya sama persis: ukuran sama, lalu awal dan akhir sama, lalu seluruh isi (SHA-256). Hard link dari satu file tidak dianggap duplikat. Pilih salinan mana yang disimpan, kumpulkan sisanya.
+
+<p align="center"><img src="docs/screenshots/duplicates.png" alt="Kelompok file kembar" width="88%"></p>
+
+### 8. File lama
+
+File besar (50 MB ke atas) yang tidak berubah selama 6, 12, 24, atau 36 bulan.
+
+<p align="center"><img src="docs/screenshots/old-files.png" alt="File lama" width="88%"></p>
+
+---
+
+## Keamanan
+
+- Scan, Penjelajah, Analisis, Duplikat, dan File lama hanya membaca disk.
+- Tidak ada yang dihapus sampai kamu menekan tombol terakhir di jendela pemeriksaan.
+- DiskLens menolak menghapus atau memindahkan akar drive, `Windows`, `Program Files`, `ProgramData`, `Users`, folder profilmu dan folder utamanya, folder Recycle Bin, file boot, `pagefile.sys`, serta DiskLens sendiri. Penolakan ini terjadi di main process, bukan hanya di tampilan.
+- Pemindahan menyalin dulu, memeriksa salinannya, baru menghapus yang asli. Kalau pemeriksaan gagal, yang asli tetap ada.
+- Setiap pembersihan tercatat di **Pengaturan → Riwayat pembersihan**.
+
+## Pintasan keyboard
 
 | Tombol | Fungsi |
 |---|---|
 | `Enter` / klik dua kali | Buka folder, pratinjau foto atau video, buka file lain |
 | `Spasi` | Pratinjau foto atau video yang dipilih |
+| `Delete` | Masukkan pilihan ke keranjang dan buka pemeriksaan |
 | `Backspace`, `Alt` + `↑` | Naik satu folder |
 | `Alt` + `←` / `→` | Mundur / maju |
 | `↑` `↓`, `Shift` + `↑` `↓` | Pindah atau perluas pilihan |
@@ -73,27 +140,26 @@ Tombol mundur, maju, dan naik, alamat yang bisa diklik, cari di dalam folder, ur
 | `Ctrl` + `Shift` + `C` | Salin path yang dipilih |
 | `Alt` + `Enter` | Properti |
 | `F5` | Segarkan folder |
-| `Esc` | Tutup menu atau pratinjau, batalkan pilihan |
+| `Esc` | Tutup menu, pratinjau, atau jendela, batalkan pilihan |
 
----
+## Bahasa
 
-## Selanjutnya
+Inggris dan Indonesia, bisa diganti di **Pengaturan**. Saat pertama dibuka, DiskLens mengikuti bahasa Windows.
 
-- [x] Scan asli, hanya membaca
-- [x] Penjelajah: daftar, grid, peta ukuran, thumbnail, pratinjau, klik kanan, properti
-- [x] Bahasa: Inggris, Indonesia
-- [ ] **Analisis**: penjelasan singkat "Apa ini?" dan "Kalau dihapus?" untuk setiap item, dikelompokkan jadi aman, cek dulu, dan jangan dihapus
-- [ ] **Keranjang kumpul**: seret item ke keranjang, periksa, lalu pindahkan ke Recycle Bin, pindahkan ke drive lain, atau hapus permanen (dengan pilihan timpa 3x). Folder sistem tetap terkunci.
-- [ ] **Duplikat**: temukan file kembar dan simpan satu saja
-- [ ] **File lama**: file yang lama tidak dibuka
-- [ ] Installer dan `.exe` portable di halaman [Releases](../../releases)
-- [ ] Bahasa lain
+<p align="center"><img src="docs/screenshots/settings.png" alt="Pengaturan dengan pilihan bahasa" width="70%"></p>
+
+### Menambah bahasa
+
+1. Salin `src/i18n/en.json` menjadi file baru sesuai kode bahasa, misalnya `src/i18n/ja.json`.
+2. Ganti `"_name"` dengan nama bahasa itu dalam bahasanya sendiri, misalnya `"日本語"`.
+3. Terjemahkan nilainya. Kunci, `{placeholder}`, dan tag `<b>` jangan diubah.
+4. Kirim pull request. Bahasa baru langsung muncul di Pengaturan.
 
 ## Privasi
 
 DiskLens bekerja sepenuhnya di komputermu. Nama file, ukuran, atau apa pun tidak dikirim lewat internet, dan tidak ada telemetri.
 
-## Menjalankan dari kode sumber
+## Build sendiri
 
 Butuh [Node.js](https://nodejs.org) versi 18 atau lebih baru.
 
@@ -101,19 +167,15 @@ Butuh [Node.js](https://nodejs.org) versi 18 atau lebih baru.
 git clone https://github.com/EEDTAN/DiskLens.git
 cd DiskLens
 npm install
-npm start
+npm start          # jalankan app
+npm run dist       # buat dist/DiskLens-Setup.exe dan dist/DiskLens-Portable.exe
 ```
 
-## Menambah bahasa
-
-1. Salin `src/i18n/en.json` menjadi file baru sesuai kode bahasa, misalnya `src/i18n/ja.json`.
-2. Ganti `"_name"` dengan nama bahasa itu dalam bahasanya sendiri, misalnya `"日本語"`.
-3. Terjemahkan nilainya. Kunci dan `{placeholder}` jangan diubah.
-4. Kirim pull request. Bahasa baru langsung muncul di Pengaturan.
+Push tag seperti `v0.2.0` akan membuat kedua file lewat GitHub Actions dan melampirkannya ke sebuah rilis.
 
 ## Terinspirasi dari SquirrelDisk
 
-Ide peta disk yang ramah dan bisa dipakai untuk bersih-bersih berasal dari [SquirrelDisk](https://github.com/adileo/squirreldisk) karya adileo, penganalisis disk gratis dan open source yang layak dicoba. DiskLens ditulis dari nol dengan desain sendiri, dan tidak berisi kode, gambar, atau teks dari SquirrelDisk.
+Ide peta disk yang ramah dan bisa dipakai untuk bersih-bersih berasal dari [SquirrelDisk](https://github.com/adileo/squirreldisk) karya adileo, penganalisis disk gratis dan open source yang layak dicoba. DiskLens ditulis dari nol dengan desain dan fitur sendiri, dan tidak berisi kode, gambar, atau teks dari SquirrelDisk.
 
 ## Lisensi
 

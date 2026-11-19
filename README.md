@@ -7,15 +7,30 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-8b5cff?style=for-the-badge">
+  <a href="https://github.com/EEDTAN/DiskLens/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/EEDTAN/DiskLens?color=8b5cff&label=download&style=for-the-badge"></a>
   <img alt="Platform" src="https://img.shields.io/badge/Windows-10%20%7C%2011-c76cff?style=for-the-badge">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-ff80d8?style=for-the-badge">
-  <img alt="Built with Electron" src="https://img.shields.io/badge/built%20with-Electron-38bdf8?style=for-the-badge">
+  <img alt="Languages" src="https://img.shields.io/badge/languages-EN%20%7C%20ID-38bdf8?style=for-the-badge">
 </p>
 
-DiskLens shows you which folders and files take up the most space, and lets you walk through them the way you already know from File Explorer. The biggest things sit at the top, every folder shows how much of its parent it fills, and photos and videos come with real thumbnails.
+DiskLens shows you which folders and files take up the most space, lets you walk through them the way you already know from File Explorer, and tells you what each thing is and what breaks if you delete it. When you are ready, you collect what you want gone and clean it up in one go: Recycle Bin, move to another drive, or delete permanently.
 
-The bigger goal is to explain each item before you delete it: what it is, and what breaks if it goes. That part is being built now (see [What's next](#whats-next)). Version 0.1 only reads your disk. It never changes or deletes anything.
+You should not need to ask anyone (or any AI) whether a folder is safe to remove. DiskLens tells you, and it refuses to touch Windows and installed programs.
+
+## Download
+
+| | |
+|---|---|
+| **Installer** | [**DiskLens-Setup.exe**](https://github.com/EEDTAN/DiskLens/releases/latest/download/DiskLens-Setup.exe), adds a Start menu entry and a desktop shortcut |
+| **Portable** | [**DiskLens-Portable.exe**](https://github.com/EEDTAN/DiskLens/releases/latest/download/DiskLens-Portable.exe), no installation, runs from any folder or USB stick |
+
+Windows 10 and 11, 64-bit. All versions are on the [Releases](https://github.com/EEDTAN/DiskLens/releases) page.
+
+<details>
+<summary>Windows says "Windows protected your PC"</summary>
+
+DiskLens is not code-signed yet (a certificate costs money), so SmartScreen warns about it the first few times. Click **More info**, then **Run anyway**. The full source code is in this repository, and the installers are built by GitHub Actions from it.
+</details>
 
 ---
 
@@ -23,49 +38,101 @@ The bigger goal is to explain each item before you delete it: what it is, and wh
 
 ### 1. Pick a drive or a folder
 
-Every drive on your PC is listed with how full it is. Scan a whole drive, or pick one folder.
+Every drive is listed with how full it is. Scan a whole drive, or choose one folder.
 
 <p align="center"><img src="docs/screenshots/home.png" alt="Home screen with the list of drives" width="88%"></p>
 
 ### 2. Watch the scan
 
-The counters climb while DiskLens reads, and the biggest files found so far appear right away. Links and junctions are skipped so nothing is counted twice, and a file with several hard links (common in `Windows\WinSxS`) counts once.
+Counters climb while DiskLens reads, and the biggest files show up as soon as they are found. Links and junctions are skipped so nothing is counted twice, and a file with several hard links (common in `Windows\WinSxS`) counts once. The scan only reads.
 
 <p align="center"><img src="docs/screenshots/scan.png" alt="Scan in progress with live counters" width="88%"></p>
 
-### 3. See the results
+### 3. See the results and pick a tool
 
-How much is video, photos, archives, programs and the rest, plus how much free space the drive has left.
+Space by file type, free space left, and four ways to look closer: **Explorer**, **Analysis**, **Duplicates** and **Old files**.
 
-<p align="center"><img src="docs/screenshots/results.png" alt="Results page with space by file type" width="88%"></p>
+<p align="center"><img src="docs/screenshots/results.png" alt="Results page with space by file type and the four tools" width="88%"></p>
 
-### 4. Browse it like File Explorer
+### 4. Explorer: browse it like File Explorer
 
-Back, forward and up buttons, a clickable address bar, search inside the folder, sorting by name, size or date. Each row shows its share of the folder, so the heavy ones are easy to spot.
+Back, forward and up, a clickable address bar, search, sorting by name, size or date. Each row shows its share of the folder, so the heavy ones stand out.
 
 <p align="center"><img src="docs/screenshots/explorer.png" alt="Explorer list sorted by size" width="88%"></p>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/photos.png" alt="Grid view with photo thumbnails"><p align="center"><b>Grid with real thumbnails</b><br>Pulled from Windows, the same ones File Explorer shows.</p></td>
-    <td width="50%"><img src="docs/screenshots/videos.png" alt="Grid view with video thumbnails"><p align="center"><b>Videos too</b><br>Video frames as thumbnails, ready to preview.</p></td>
+    <td width="50%"><img src="docs/screenshots/photos.png" alt="Grid view with photo thumbnails"><p align="center"><b>Real thumbnails</b><br>Pulled from Windows, the same ones File Explorer shows.</p></td>
+    <td width="50%"><img src="docs/screenshots/videos.png" alt="Grid view with video thumbnails"><p align="center"><b>Videos too</b><br>Frames as thumbnails, ready to preview.</p></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/context-menu.png" alt="Right-click menu"><p align="center"><b>Right-click menu</b><br>Open, open with the default app, preview, copy path, show in File Explorer, properties.</p></td>
+    <td width="50%"><img src="docs/screenshots/context-menu.png" alt="Right-click menu"><p align="center"><b>Right-click menu</b><br>Open, open with the default app, preview, add to the collector, analyze, copy path, properties.</p></td>
     <td width="50%"><img src="docs/screenshots/viewer.png" alt="Full-screen photo preview"><p align="center"><b>Preview</b><br>Double-click a photo or video. Arrow keys move to the next one.</p></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/map.png" alt="Size map view"><p align="center"><b>Size map</b><br>Every item as a block sized by how much space it takes.</p></td>
-    <td width="50%"><img src="docs/screenshots/settings.png" alt="Settings with language choice"><p align="center"><b>Your language</b><br>English and Bahasa Indonesia today. Adding one is adding one file.</p></td>
   </tr>
 </table>
 
-### Keyboard
+<p align="center"><img src="docs/screenshots/map.png" alt="Size map view" width="70%"><br><b>Size map</b>: every item as a block sized by the space it takes.</p>
+
+### 5. Analysis: what is safe to delete
+
+DiskLens recognizes caches, temp files, installers, crash dumps, Windows leftovers, game folders, developer caches, WSL disks, OneDrive and much more, then sorts them into three groups:
+
+- **Safe to delete**: caches and leftovers that come back by themselves or are not needed
+- **Check first**: your own files, app data and installed things
+- **Keep**: Windows and installed programs. DiskLens will not delete these.
+
+Click an item to read **What is this?**, **If you delete it**, and often a **Better way** (for example, use Disk Cleanup for `WinSxS`, or uninstall a program in Settings instead of deleting its folder).
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/analysis.png" alt="Analysis: safe to delete"></td>
+    <td width="50%"><img src="docs/screenshots/analysis-check.png" alt="Analysis: check first"></td>
+  </tr>
+</table>
+
+### 6. Collect first, clean up in one go
+
+Drag rows into the collector at the bottom, or press **+**, from any tool. When you are done, press **Review**. Every item is listed again with what happens if it is deleted, and app data asks for an extra confirmation.
+
+<p align="center"><img src="docs/screenshots/collector.png" alt="Collector with items" width="88%"></p>
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/review.png" alt="Review: Recycle Bin"><p align="center"><b>Recycle Bin</b><br>Can be restored any time.</p></td>
+    <td width="33%"><img src="docs/screenshots/review-move.png" alt="Review: move to another drive"><p align="center"><b>Move to another drive</b><br>Copies, checks every file with SHA-256, then removes the original.</p></td>
+    <td width="33%"><img src="docs/screenshots/review-perm.png" alt="Review: delete permanently"><p align="center"><b>Delete permanently</b><br>Type the confirmation word. Optional 3-pass overwrite.</p></td>
+  </tr>
+</table>
+
+### 7. Duplicates
+
+Finds files with identical content: same size, then the same start and end, then the full SHA-256. Hard links of one file are not counted as duplicates. Pick which copy to keep, collect the rest.
+
+<p align="center"><img src="docs/screenshots/duplicates.png" alt="Duplicate groups" width="88%"></p>
+
+### 8. Old files
+
+Big files (50 MB or more) that have not changed in 6, 12, 24 or 36 months.
+
+<p align="center"><img src="docs/screenshots/old-files.png" alt="Old files" width="88%"></p>
+
+---
+
+## Safety
+
+- The scan, Explorer, Analysis, Duplicates and Old files only read your disk.
+- Nothing is deleted until you press the final button in the review window.
+- DiskLens refuses, in the main process and not just in the interface, to delete or move drive roots, `Windows`, `Program Files`, `ProgramData`, `Users`, your profile folder and its main folders, the Recycle Bin folder, boot files, `pagefile.sys` and DiskLens itself.
+- Moving copies first, checks the copy, and only then removes the original. If the check fails, the original stays.
+- Every clean-up is listed in **Settings → Clean-up history**.
+
+## Keyboard
 
 | Keys | Action |
 |---|---|
 | `Enter` / double-click | Open a folder, preview a photo or video, open any other file |
 | `Space` | Preview the selected photo or video |
+| `Delete` | Put the selection in the collector and open the review |
 | `Backspace`, `Alt` + `↑` | Up one folder |
 | `Alt` + `←` / `→` | Back / forward |
 | `↑` `↓`, `Shift` + `↑` `↓` | Move or extend the selection |
@@ -73,27 +140,26 @@ Back, forward and up buttons, a clickable address bar, search inside the folder,
 | `Ctrl` + `Shift` + `C` | Copy the selected paths |
 | `Alt` + `Enter` | Properties |
 | `F5` | Refresh the folder |
-| `Esc` | Close a menu or preview, clear the selection |
+| `Esc` | Close a menu, preview or window, clear the selection |
 
----
+## Languages
 
-## What's next
+English and Bahasa Indonesia, switchable in **Settings**. DiskLens follows the Windows language the first time it starts.
 
-- [x] Real scan, read-only
-- [x] Explorer: list, grid, size map, thumbnails, preview, right-click menu, properties
-- [x] Languages: English, Bahasa Indonesia
-- [ ] **Analysis**: a short "What is this?" and "What happens if I delete it?" for each item, sorted into safe, check first, and keep
-- [ ] **Collector**: drag items into a basket, review them, then move them to the Recycle Bin, move them to another drive, or delete permanently (with an optional 3-pass overwrite). System folders stay locked.
-- [ ] **Duplicates**: find identical files and keep one copy
-- [ ] **Old files**: things you have not opened in a long time
-- [ ] Installer and portable `.exe` on the [Releases](../../releases) page
-- [ ] More languages
+<p align="center"><img src="docs/screenshots/settings.png" alt="Settings with language choice" width="70%"></p>
+
+### Add a language
+
+1. Copy `src/i18n/en.json` to a new file named after the language code, for example `src/i18n/ja.json`.
+2. Change `"_name"` to the language's own name, for example `"日本語"`.
+3. Translate the values. Keep the keys, the `{placeholders}` and the `<b>` tags as they are.
+4. Open a pull request. The language shows up in Settings by itself.
 
 ## Privacy
 
 DiskLens runs entirely on your computer. It does not send file names, sizes or anything else over the internet, and it has no telemetry.
 
-## Run it from source
+## Build it yourself
 
 You need [Node.js](https://nodejs.org) 18 or newer.
 
@@ -101,19 +167,15 @@ You need [Node.js](https://nodejs.org) 18 or newer.
 git clone https://github.com/EEDTAN/DiskLens.git
 cd DiskLens
 npm install
-npm start
+npm start          # run the app
+npm run dist       # build dist/DiskLens-Setup.exe and dist/DiskLens-Portable.exe
 ```
 
-## Add a language
-
-1. Copy `src/i18n/en.json` to a new file named after the language code, for example `src/i18n/ja.json`.
-2. Change `"_name"` to the language's own name, for example `"日本語"`.
-3. Translate the values and keep the keys and the `{placeholders}` as they are.
-4. Open a pull request. The new language shows up in Settings by itself.
+Pushing a tag such as `v0.2.0` builds both files with GitHub Actions and attaches them to a release.
 
 ## Inspired by SquirrelDisk
 
-The idea of a friendly disk map you can clean up from comes from [SquirrelDisk](https://github.com/adileo/squirreldisk) by adileo, a free and open-source disk analyzer that is well worth a look. DiskLens is written from scratch with its own design. It does not contain SquirrelDisk's code, artwork or text.
+The idea of a friendly disk map you can clean up from comes from [SquirrelDisk](https://github.com/adileo/squirreldisk) by adileo, a free and open-source disk analyzer that is well worth a look. DiskLens is written from scratch with its own design and features. It does not contain SquirrelDisk's code, artwork or text.
 
 ## License
 

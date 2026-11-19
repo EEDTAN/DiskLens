@@ -6,6 +6,7 @@ const path = require('path');
 const root = workerData.root;
 let files = 0, dirs = 0, bytes = 0, unread = 0, linked = 0, cur = root;
 const seen = new Set(); // hard-linked files already counted
+const BIG = 50 * 1024 * 1024;
 const top = [];
 const cats = { video: 0, image: 0, audio: 0, doc: 0, archive: 0, app: 0, other: 0 };
 const CAT = {};
@@ -50,6 +51,8 @@ async function walk(dir, node) {
       node.s += size; bytes += size;
       cats[CAT[path.extname(e.name).slice(1).toLowerCase()] || 'other'] += size;
       pushTop(e.name, p, size);
+      // Remember big files (name, size, last change) for Analysis and Old files.
+      if (size >= BIG) (node.b || (node.b = [])).push([e.name, size, Number(st.mtimeMs)]);
     } catch { /* file vanished or unreadable */ }
   })));
   const kids = await Promise.all(subs.map(async e => {

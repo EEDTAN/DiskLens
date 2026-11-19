@@ -34,6 +34,8 @@ const FILE = '<svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 
 const ZIP = '<svg viewBox="0 0 24 24"><path d="M4 4h16v4H4zm1 5h14v11H5zm6 1v2h2v-2zm0 3v2h2v-2zm0 3v2h2v-2z"/></svg>';
 const DISK = '<svg viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm3 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm3 0v2h7v-2z"/></svg>';
 const GEAR = '<svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8.5 4.5v-2l-2-.6-.5-1.2 1-1.800-1.400-1.400-1.800 1-1.200-.5-.6-2h-2l-.6 2-1.200.5-1.800-1L5.600 7.400l1 1.800-.5 1.200-2 .6v2l2 .6.5 1.200-1 1.800 1.400 1.400 1.800-1 1.200.5.6 2h2l.6-2 1.200-.5 1.800 1 1.400-1.400-1-1.800.5-1.200z"/></svg>';
+const ICON_AN = '<svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zm-1.2 13.6l6-6-1.400-1.400-4.600 4.600-2.200-2.200-1.400 1.400z"/></svg>';
+const ICON_OLD = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm1 5h-2v6l5 3 1-1.700-4-2.300z"/></svg>';
 const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 const LOGO = '<svg viewBox="0 0 40 40"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cff"/><stop offset="1" stop-color="#ff80d8"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#lgg)"/><circle cx="17" cy="17" r="9" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M17 17V10.2A6.8 6.8 0 0 1 23.8 17Z" fill="#fff" opacity=".9"/><path d="M23.5 23.5L30.5 30.5" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/></svg>';
 const ILLU = '<svg viewBox="0 0 140 120"><defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd37a"/><stop offset="1" stop-color="#ff9f43"/></linearGradient></defs><path d="M20 40a10 10 0 0 1 10-10h28l10 12h42a10 10 0 0 1 10 10v44a10 10 0 0 1-10 10H30a10 10 0 0 1-10-10z" fill="url(#fg)"/><rect x="28" y="38" width="86" height="40" rx="6" fill="#fff" opacity=".85" transform="rotate(-4 70 58)"/><path d="M20 58h104v38a10 10 0 0 1-10 10H30a10 10 0 0 1-10-10z" fill="#ffb54f"/><circle cx="104" cy="30" r="14" fill="#fff" opacity=".9"/><circle cx="92" cy="26" r="9" fill="#fff" opacity=".9"/><circle cx="116" cy="36" r="6" fill="#ff80d8"/><circle cx="96" cy="46" r="5" fill="#5eead4"/><circle cx="62" cy="20" r="14" fill="none" stroke="#fff" stroke-width="5"/><path d="M72 30l12 12" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>';
@@ -104,7 +106,12 @@ api.onDone(async d => {
   S.rootInfo = d; S.root = d.root;
   const rec = [{ root: d.root, bytes: d.bytes, files: d.files, at: Date.now() }, ...S.recent.filter(r => !same(r.root, d.root))].slice(0, 5);
   S.recent = rec; api.setSettings({ recent: rec });
+  S.tray = []; S.gone = new Set(); S.known = new Map(); S.xsel = null; S.tool = 'explorer';
+  Object.assign(S.an, { items: null, tab: 'safe' }); Object.assign(S.dups, { state: 'idle', groups: [], keep: {} }); S.old.items = null; S.oldCount = null;
   S.screen = 'overview'; render(); loadQuick();
+  S.an.items = remember(await api.analysis());
+  const old = await api.oldFiles(12); S.oldCount = { n: old.length, size: old.reduce((a, x) => a + x.size, 0) };
+  if (S.screen === 'overview') render();
 });
 async function loadQuick() {
   const names = ['desktop', 'downloads', 'documents', 'pictures', 'videos', 'music'];
@@ -117,12 +124,13 @@ async function loadQuick() {
 function overviewHTML() {
   const r = S.rootInfo, drive = S.drives.find(d => S.root.toUpperCase().startsWith(d.letter.toUpperCase())), isDrive = drive && same(drive.letter + '\\', S.root);
   const order = ['video', 'image', 'audio', 'doc', 'archive', 'app', 'other'], tot = r.bytes || 1;
-  const soon = (ic, a, b, ti, de) => `<div class="ac off" style="--a:${a};--b:${b}"><div class="ic">${ic}</div><b>${esc(ti)}</b><small>${esc(de)}</small><span class="st">${esc(t('soon'))}</span></div>`;
+  const card = (tool, ic, a, b, ti, de, st) => `<button class="ac" data-tool="${tool}" style="--a:${a};--b:${b}"><div class="ic">${ic}</div><span class="go2">›</span><b>${esc(ti)}</b><small>${esc(de)}</small><span class="st">${esc(st)}</span></button>`;
+  const safeSum = S.an.items ? S.an.items.filter(x => x.risk === 'safe' && !gone(x.path)).reduce((a, x) => a + x.size, 0) : null;
   return shell(`<div class="ovh"><div><small>${esc(t('ov.done', { time: fdur(r.ms) }))}</small><h1>${esc(t('ov.title', { name: S.root }))}</h1></div><span class="pill">${esc(F(r.bytes))}</span><span class="pill">${esc(N(r.files))} ${esc(t('scan.files'))}</span><span class="pill">${esc(N(r.dirs))} ${esc(t('scan.folders'))}</span><span class="sp"></span><button class="ghostb" data-scan="${esc(S.root)}">⟳ ${esc(t('ov.rescan'))}</button><button class="ghostb" data-act="home">${esc(t('ov.change'))}</button></div>
   <div class="ovgrid"><div class="card2"><h3>${esc(t('ov.byType'))}</h3><div class="stk">${order.map(k => `<i style="--a:${CATC[k][0]};--b:${CATC[k][1]};flex:${Math.max(r.cats[k], tot * 0.004)}" title="${esc(t('cat.' + k))}"></i>`).join('')}</div><div class="cl">${order.map(k => `<div style="--a:${CATC[k][0]};--b:${CATC[k][1]}"><i></i><span>${esc(t('cat.' + k))}</span><b>${esc(F(r.cats[k]))}</b></div>`).join('')}</div></div>
   <div class="side2"><div class="safe"><small>${esc(isDrive || !drive ? t('ov.free') : t('ov.freeOn', { d: drive.letter }))}</small><div class="n">${drive ? esc(F(drive.free)) : '—'}</div><p>${drive ? esc(t('home.used', { used: F(drive.total - drive.free), total: F(drive.total) })) : ''}</p><button data-act="explore">${esc(t('ov.openExplorer'))} ›</button></div>${r.unread ? `<div class="free"><span>${esc(t('ov.unread', { n: N(r.unread) }))}</span></div>` : ''}${r.linked ? `<div class="free"><span>${esc(t('ov.linked', { n: N(r.linked) }))}</span></div>` : ''}</div></div>
-  <h3 class="ovh2">${esc(t('ov.choose'))}</h3><div class="acts"><button class="ac" data-act="explore" style="--a:#8b5cff;--b:#6c3ef2"><div class="ic">${FOLDER}</div><span class="go2">›</span><b>${esc(t('nav.explorer'))}</b><small>${esc(t('ov.explorerDesc'))}</small><span class="st">${esc(t('ov.explorerBadge'))}</span></button>
-  ${soon(FILE, '#ffc15e', '#ff9f2e', t('nav.analysis'), t('ov.analysisDesc'))}${soon(ZIP, '#5eead4', '#38bdf8', t('nav.dups'), t('ov.dupsDesc'))}${soon(FILE, '#cbd5e1', '#94a3b8', t('ov.old'), t('ov.oldDesc'))}</div>`);
+  <h3 class="ovh2">${esc(t('ov.choose'))}</h3><div class="acts"><button class="ac" data-tool="explorer" style="--a:#8b5cff;--b:#6c3ef2"><div class="ic">${FOLDER}</div><span class="go2">›</span><b>${esc(t('nav.explorer'))}</b><small>${esc(t('ov.explorerDesc'))}</small><span class="st">${esc(t('ov.explorerBadge'))}</span></button>
+  ${card('analysis', ICON_AN, '#ffc15e', '#ff9f2e', t('nav.analysis'), t('ov.analysisDesc'), safeSum == null ? t('ex.loading') : t('ov.safeBadge', { size: F(safeSum) }))}${card('dups', ZIP, '#5eead4', '#38bdf8', t('nav.dups'), t('ov.dupsDesc'), t('ov.dupsBadge'))}${card('old', ICON_OLD, '#b79bff', '#7c4dff', t('ov.old'), t('ov.oldDesc'), S.oldCount ? t('ov.oldBadge', { n: N(S.oldCount.n), size: F(S.oldCount.size) }) : t('ex.loading'))}</div>`);
 }
 
 /* ---------- explorer ---------- */
@@ -141,7 +149,7 @@ function sideHTML() {
   return `<aside class="side"><button class="brand" data-act="home" title="${esc(t('nav.home'))}"><span class="lgo">${LOGO}</span>DiskLens</button>
   <button class="nv" data-act="overview" style="color:var(--accent)"><span>‹ ${esc(t('nav.results'))}</span></button>
   <div class="dv"><b>${esc(drive ? driveName(drive) : S.root)}</b><small>${drive ? esc(t('home.used', { used: F(drive.total - drive.free), total: F(drive.total) })) : esc(F(S.rootInfo.bytes))}</small><div class="mb"><i style="width:${drive ? (drive.total - drive.free) / drive.total * 100 : 100}%"></i></div></div>
-  <h5>${esc(t('nav.tools'))}</h5><button class="nv on">${FOLDER}<span>${esc(t('nav.explorer'))}</span></button><button class="nv dis">${FILE}<span>${esc(t('nav.analysis'))}</span><em>${esc(t('soon.short'))}</em></button><button class="nv dis">${ZIP}<span>${esc(t('nav.dups'))}</span><em>${esc(t('soon.short'))}</em></button>
+  <h5>${esc(t('nav.tools'))}</h5>${[['explorer', FOLDER, 'nav.explorer'], ['analysis', ICON_AN, 'nav.analysis'], ['dups', ZIP, 'nav.dups'], ['old', ICON_OLD, 'ov.old']].map(([k, ic, l]) => `<button class="nv ${S.tool === k ? 'on' : ''}" data-tool="${k}">${ic}<span>${esc(t(l))}</span></button>`).join('')}
   <h5>${esc(t('nav.quick'))}</h5><button class="nv q" data-go="${esc(S.root)}"><span>${esc(rootName())} ${esc(t('nav.root'))}</span><em>${esc(F(S.rootInfo.bytes))}</em></button>${S.quick.map(q => `<button class="nv q" data-go="${esc(q.path)}"><span>${esc(t('quick.' + q.key))}</span><em>${esc(F(q.size))}</em></button>`).join('')}
   <div class="grow"></div><button class="nv" data-act="settings">${GEAR}<span>${esc(t('settings.title'))}</span></button></aside>`;
 }
@@ -156,16 +164,17 @@ function statText() {
   return (n ? t('ex.selected', { n }) + ' · ' + F(sum) + ' · ' : '') + t('ex.items', { n: N(S.view.length) }) + ' · ' + F(folderTotal()) + (n ? '' : ' · ' + t('ex.hint'));
 }
 function workHTML() {
+  if (S.tool !== 'explorer') return `<div class="work">${sideHTML()}<div class="tbar">${toolTop()}</div><main>${toolMain()}</main>${trayHTML()}<div class="panel" id="panel">${toolPanel()}</div></div>${modalHTML()}${viewerHTML()}${propsHTML()}`;
   buildView();
   const can = { back: S.hp > 0, fwd: S.hp < S.hist.length - 1, up: !same(S.cur, S.root) };
   return `<div class="work">${sideHTML()}<div class="tbar"><div class="tb1"><button class="nb" data-act="back" ${can.back ? '' : 'disabled'} title="${esc(t('ex.back'))}">‹</button><button class="nb" data-act="fwd" ${can.fwd ? '' : 'disabled'} title="${esc(t('ex.fwd'))}">›</button><button class="nb" data-act="up" ${can.up ? '' : 'disabled'} title="${esc(t('ex.up'))}">↑</button>
   <div class="addr">${crumbs()}</div><div class="sch"><span>🔍</span><input id="q" placeholder="${esc(t('ex.search'))}" value="${esc(S.q)}" autocomplete="off"></div></div>
   <div class="tb2"><span class="info" id="stat">${esc(statText())}</span><span class="sp"></span><div class="seg">${[['list', 'ex.list'], ['grid', 'ex.grid'], ['map', 'ex.map']].map(([k, l]) => `<button class="${S.mode === k ? 'on' : ''}" data-mode="${k}">${esc(t(l))}</button>`).join('')}</div></div></div>
-  <main>${expMain()}</main><div class="panel" id="panel">${panelHTML()}</div></div>${viewerHTML()}${propsHTML()}`;
+  <main>${expMain()}</main>${trayHTML()}<div class="panel" id="panel">${panelHTML()}</div></div>${modalHTML()}${viewerHTML()}${propsHTML()}`;
 }
 function visual(e, i) {
   const k = kindOf(e);
-  if (k === 'foto' || k === 'video') return `<div class="th" data-th="${i}">${k === 'video' ? `<div class="play"><i></i></div>` : ''}</div>`;
+  if (k === 'foto' || k === 'video') return `<div class="th" data-thp="${esc(e.path)}">${k === 'video' ? `<div class="play"><i></i></div>` : ''}</div>`;
   return `<div class="ic" style="${gradOf(e)}">${glyph(e)}</div>`;
 }
 function expMain() {
@@ -175,11 +184,11 @@ function expMain() {
   if (S.mode === 'map') return `<div class="exp"><div class="tmw" id="tmw"></div></div>`;
   const tot = folderTotal() || 1, shown = S.view.slice(0, S.limit), more = S.view.length - shown.length;
   const moreBtn = more > 0 ? `<button class="morebtn" data-act="more">${esc(t('ex.more', { n: N(more) }))}</button>` : '';
-  if (S.mode === 'grid') return `<div class="exp"><div class="grid">${shown.map((e, i) => `<div class="gf ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" style="${gradOf(e)}">${kindOf(e) === 'foto' || kindOf(e) === 'video' ? visual(e, i) : `<div class="fi">${glyph(e)}</div>`}<b>${esc(e.name)}</b><small><span>${esc(F(e.size))}</span><span>${esc(t('kind.' + kindOf(e)))}</span></small></div>`).join('')}</div>${moreBtn}</div>`;
+  if (S.mode === 'grid') return `<div class="exp"><div class="grid">${shown.map((e, i) => `<div class="gf ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" draggable="true" style="${gradOf(e)}">${kindOf(e) === 'foto' || kindOf(e) === 'video' ? visual(e, i) : `<div class="fi">${glyph(e)}</div>`}<b>${esc(e.name)}</b><small><span>${esc(F(e.size))}</span><span>${esc(t('kind.' + kindOf(e)))}</span></small><button class="add ${inTray(e.path) ? 'in' : ''}" data-tadd="${esc(e.path)}" title="${esc(t('tray.add'))}">${inTray(e.path) ? '✓' : '+'}</button></div>`).join('')}</div>${moreBtn}</div>`;
   const hb = (k, l) => `<button class="${S.sortK === k ? 'on' : ''}" data-sort="${k}">${esc(t(l))}${S.sortK === k ? (S.sortD < 0 ? ' ↓' : ' ↑') : ''}</button>`;
   return `<div class="exp"><div class="rw hd"><span></span>${hb('name', 'ex.name')}${hb('size', 'ex.share')}${hb('size', 'ex.size')}<span>%</span>${hb('date', 'ex.modified')}</div>${shown.map((e, i) => {
     const pc = e.size == null ? 0 : e.size / tot * 100, k = kindOf(e);
-    return `<div class="rw ${e.dir ? 'folder' : ''} ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" style="${gradOf(e)}">${visual(e, i)}<div class="nm"><b>${esc(e.name)}</b><small>${esc(e.dir ? (e.files != null ? t('ex.itemsIn', { n: N(e.files) }) : t('kind.folder')) : t('kind.' + k))}</small></div><div class="bar"><i style="width:${Math.max(e.size ? 1.5 : 0, pc)}%"></i></div><div class="s">${esc(F(e.size))}</div><div class="p">${e.size == null ? '' : (pc < 1 ? '<1' : Math.round(pc)) + '%'}</div><div class="dt">${esc(fdate(e.mtime))}</div></div>`;
+    return `<div class="rw ${e.dir ? 'folder' : ''} ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" draggable="true" style="${gradOf(e)}">${visual(e, i)}<div class="nm"><b>${esc(e.name)}</b><small>${esc(e.dir ? (e.files != null ? t('ex.itemsIn', { n: N(e.files) }) : t('kind.folder')) : t('kind.' + k))}</small></div><div class="bar"><i style="width:${Math.max(e.size ? 1.5 : 0, pc)}%"></i></div><div class="s">${esc(F(e.size))}</div><div class="p">${e.size == null ? '' : (pc < 1 ? '<1' : Math.round(pc)) + '%'}</div><div class="dt">${esc(fdate(e.mtime))}</div><button class="add ${inTray(e.path) ? 'in' : ''}" data-tadd="${esc(e.path)}" title="${esc(t('tray.add'))}">${inTray(e.path) ? '✓' : '+'}</button></div>`;
   }).join('')}${moreBtn}</div>`;
 }
 function drawMap() {
@@ -207,12 +216,12 @@ function squarify(items, x, y, w, h) {
 const thumbs = new Map();
 const io = new IntersectionObserver(es => es.forEach(en => {
   if (!en.isIntersecting) return; const el = en.target; io.unobserve(el);
-  const e = S.view[+el.dataset.th]; if (!e) return;
+  const e = { path: el.dataset.thp };
   const apply = u => { if (u && el.isConnected) { el.style.backgroundImage = `url("${u}")`; el.classList.add('loaded'); } };
   if (thumbs.has(e.path)) return apply(thumbs.get(e.path));
   api.thumb(e.path).then(u => { thumbs.set(e.path, u); apply(u); });
 }), { rootMargin: '200px' });
-function observeThumbs() { document.querySelectorAll('[data-th]').forEach(el => io.observe(el)); }
+function observeThumbs() { document.querySelectorAll('[data-thp]').forEach(el => io.observe(el)); }
 
 /* ---------- side panel ---------- */
 const kv = (a, b) => `<div class="kv"><span>${esc(a)}</span><b>${b}</b></div>`;
@@ -230,7 +239,7 @@ function panelHTML() {
   return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t('kind.' + k))}</span><h2>${esc(name)}</h2><div class="sz">${esc(F(size))}</div><small>${esc(e ? parentOf(e.path) + ' · ' + fdate(e.mtime) : path)}</small></div>
   <div class="det">${preview}${top3.length ? `<div class="card"><h4>${esc(t('panel.biggest'))}</h4>${top3.map(x => `<div class="mini" style="${gradOf(x)}"><span>${esc(x.name)}</span><span class="b"><i style="width:${x.size / (size || 1) * 100}%"></i></span><span class="v">${esc(F(x.size))}</span></div>`).join('')}</div>` : ''}
   <div class="card"><h4>${esc(t('ctx.props'))}</h4>${kv(t('panel.type'), esc(t('kind.' + k)))}${kv(t('panel.location'), esc(e ? parentOf(e.path) : path))}${kv(t('panel.size'), esc(F(size)))}${files != null ? kv(t('panel.contains'), esc(t('panel.containsVal', { f: t('unit.files', { n: N(files) }), d: t('unit.folders', { n: N(dirs || 0) }) }))) : ''}${e ? kv(t('panel.modified'), esc(fdate(e.mtime))) : ''}</div>
-  <div>${e && !e.dir ? `<button class="big" data-act="openitem">${esc(t('ctx.open'))}</button>` : ''}${e && e.dir ? `<button class="big" data-act="openitem">${esc(t('panel.openFolder'))} ›</button>` : ''}<button class="big ghost" data-act="showitem">${esc(t('ctx.show'))}</button></div></div>`;
+  <div>${e && !e.dir ? `<button class="big" data-act="openitem">${esc(t('ctx.open'))}</button>` : ''}${e && e.dir ? `<button class="big" data-act="openitem">${esc(t('panel.openFolder'))} ›</button>` : ''}${e ? `<button class="big ghost" data-analyze="${esc(e.path)}">${esc(t('panel.analyze'))} ›</button>` : ''}<button class="big ghost" data-act="showitem">${esc(t('ctx.show'))}</button></div></div>`;
 }
 function refreshSel() {
   document.querySelectorAll('.rw[data-i],.gf[data-i],.tl[data-i]').forEach(x => { const e = S.view[+x.dataset.i]; x.classList.toggle('sel', !!e && S.sel.has(e.path)); });
@@ -262,6 +271,7 @@ function settingsHTML() {
   const codes = Object.keys(S.langs).sort((a, b) => (a === 'en' ? -1 : b === 'en' ? 1 : a.localeCompare(b)));
   return shell(`<div class="setg"><div class="ovh"><button class="backb" data-act="back2" title="${esc(t('close'))}">‹</button><div><h1>${esc(t('settings.title'))}</h1></div></div>
   <div class="card2"><h3>${esc(t('settings.language'))}</h3><p class="hint">${esc(t('settings.languageHint'))}</p><div class="lang-grid">${codes.map(c => `<button class="lbtn ${c === S.lang ? 'on' : ''}" data-lang="${esc(c)}"><b>${esc(S.langs[c]._name || c)}</b><small>${esc(c)}</small></button>`).join('')}</div></div>
+  <div class="card2"><h3>${esc(t('settings.history'))}</h3>${S.history.length ? S.history.slice(0, 12).map(h => `<div class="hist"><span>${esc(fdate(h.at))}</span><b>${esc(t('hist.' + h.action, { n: h.n }))}</b><em>${esc(F(h.bytes))}</em></div>`).join('') : `<p class="hint">${esc(t('settings.noHistory'))}</p>`}</div>
   <div class="card2"><h3>${esc(t('settings.about'))}</h3><div class="aboutrow"><span class="lgo xl">${LOGO}</span><div><b>DiskLens</b><small>${esc(t('settings.version'))} ${esc(S.version)} · ${esc(t('settings.license'))}</small></div></div>
   <p class="hint">${esc(t('settings.privacy'))}</p><p class="hint">${esc(t('settings.inspired'))} <button class="lnk" data-ext="https://github.com/adileo/squirreldisk">SquirrelDisk</button></p></div></div>`);
 }
@@ -272,7 +282,7 @@ function render() {
   $('app').innerHTML = { home: homeHTML, scan: scanHTML, overview: overviewHTML, work: workHTML, settings: settingsHTML }[S.screen]();
   document.documentElement.lang = S.lang;
   if (S.screen === 'scan') updateScan();
-  if (S.screen === 'work') { const ex = document.querySelector('.exp'); if (ex) ex.scrollTop = sc; if (S.mode === 'map' && !S.loading) drawMap(); observeThumbs(); applyPreviewThumbs(); const v = $('vid'); if (v) v.onerror = () => { v.hidden = true; $('vfail').hidden = false; }; }
+  if (S.screen === 'work') { wireTray(); const ex = document.querySelector('.exp'); if (ex) ex.scrollTop = sc; if (S.tool === 'explorer' && S.mode === 'map' && !S.loading) drawMap(); observeThumbs(); applyPreviewThumbs(); const v = $('vid'); if (v) v.onerror = () => { v.hidden = true; $('vfail').hidden = false; }; }
 }
 
 /* ---------- navigation ---------- */
@@ -285,7 +295,7 @@ async function go(p, push = true) {
   if (r.error) { S.err = r.error; S.entries = []; } else { S.entries = r.entries; S.total = r.total; S.info = r.info; S.truncated = r.truncated; }
   render();
 }
-function explore() { S.screen = 'work'; S.hist = []; S.hp = 0; go(S.root); }
+function explore() { S.screen = 'work'; S.tool = 'explorer'; S.hist = []; S.hp = 0; go(S.root); }
 const goHist = d => { const p = S.hp + d; if (p < 0 || p >= S.hist.length) return; S.hp = p; go(S.hist[p], false); };
 const openEntry = e => { if (e.dir) go(e.path); else if (['foto', 'video'].includes(kindOf(e))) openViewer(e); else api.open(e.path).then(err => err && toast(t('toast.openFail', { e: err }))); };
 const copyPaths = list => { api.copy(list.map(e => e.path).join('\n')); toast(list.length > 1 ? t('toast.copiedMany', { n: list.length }) : t('toast.copied')); };
@@ -333,6 +343,7 @@ function itemMenu(list) {
   }
   L.push({ t: list.length > 1 ? t('ctx.copyPaths') : t('ctx.copyPath'), ic: '📋', k: 'Ctrl+Shift+C', f: () => copyPaths(list) });
   if (one) L.push({ t: t('ctx.copyName'), ic: '🔤', f: () => { api.copy(one.name); toast(t('toast.nameCopied')); } });
+  L.push({ sep: true }, { t: list.length > 1 ? t('tray.addN', { n: list.length }) : t('tray.add'), ic: '🧺', f: () => addTray(list) }, { t: t('ctx.analyze'), ic: '🔎', f: () => { const b = document.createElement('button'); b.dataset.analyze = list[0].path; document.body.appendChild(b); b.click(); b.remove(); } }, { t: t('ctx.delete'), ic: '🗑', k: 'Del', f: () => deleteNow(list) }, { sep: true });
   L.push({ t: t('ctx.show'), ic: '🗂', f: () => api.show(list[0].path) }, { sep: true }, { t: t('ctx.props'), ic: 'ⓘ', k: 'Alt+Enter', f: () => openProps(list) });
   return L;
 }
@@ -350,7 +361,8 @@ function bgMenu() {
 
 /* ---------- events ---------- */
 document.addEventListener('contextmenu', ev => {
-  if (ev.target.closest('input')) return; ev.preventDefault(); closeCtx(); if (S.screen !== 'work' || S.viewer || S.props) return;
+  if (ev.target.closest('input')) return; ev.preventDefault(); closeCtx(); if (S.screen !== 'work' || S.viewer || S.props || S.modal) return;
+  if (S.tool !== 'explorer') return toolCtx(ev);
   const row = ev.target.closest('[data-i]');
   if (row) { const e = itemOf(+row.dataset.i); if (!e) return; if (!S.sel.has(e.path)) { S.sel = new Set([e.path]); S.anchor = e.path; refreshSel(); } return showCtx(ev.clientX, ev.clientY, itemMenu(selList())); }
   if (ev.target.closest('.exp')) showCtx(ev.clientX, ev.clientY, bgMenu());
@@ -395,7 +407,7 @@ document.addEventListener('keydown', ev => {
   const k = ev.key, ctrl = ev.ctrlKey || ev.metaKey;
   if (k === 'Escape') { if ($('ctx')) return closeCtx(); if (S.props) { S.props = null; return render(); } if (S.viewer) { S.viewer = null; return render(); } if (S.screen === 'work' && S.sel.size) { S.sel = new Set(); return refreshSel(); } return; }
   if (S.viewer) { const v = S.viewer, n = v.list.length; if (k === 'ArrowRight') { v.i = (v.i + 1) % n; render(); } if (k === 'ArrowLeft') { v.i = (v.i - 1 + n) % n; render(); } return; }
-  if (S.screen !== 'work' || S.props || /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
+  if (S.screen !== 'work' || S.props || S.modal || S.tool !== 'explorer' || /INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
   const sel = selList();
   if (ctrl && k.toLowerCase() === 'a') { ev.preventDefault(); S.sel = new Set(S.view.map(e => e.path)); return refreshSel(); }
   if (ctrl && ev.shiftKey && k.toLowerCase() === 'c') { ev.preventDefault(); return sel.length && copyPaths(sel); }
@@ -413,7 +425,7 @@ document.addEventListener('keydown', ev => {
 /* ---------- start ---------- */
 (async () => {
   const [langs, settings, paths, drives, version] = await Promise.all([api.langs(), api.getSettings(), api.paths(), api.drives(), api.version()]);
-  S.langs = langs; S.paths = paths; S.drives = drives; S.version = version; S.recent = settings.recent || [];
+  S.langs = langs; S.paths = paths; S.drives = drives; S.version = version; S.recent = settings.recent || []; S.history = settings.history || [];
   const sys = (navigator.language || 'en').slice(0, 2).toLowerCase();
   S.lang = settings.lang && langs[settings.lang] ? settings.lang : (langs[sys] ? sys : 'en');
   render();

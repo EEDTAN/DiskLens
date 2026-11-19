@@ -1,15 +1,17 @@
 {
   "name": "disklens",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Disk space analyzer with a File Explorer feel. See what is big, and learn what happens before you delete it.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
   },
   "author": "EEDTAN",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^45.4.1"
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
   },
   "homepage": "https://github.com/EEDTAN/DiskLens",
   "repository": {
@@ -26,5 +28,54 @@
     "file-explorer",
     "electron",
     "windows"
-  ]
+  ],
+  "build": {
+    "appId": "io.github.eedtan.disklens",
+    "productName": "DiskLens",
+    "copyright": "Copyright (c) 2026 EEDTAN",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "scanner.js",
+      "dups.js",
+      "rules.js",
+      "ops.js",
+      "src/**/*",
+      "build/icon.png",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "DiskLens-Setup.exe",
+      "license": "LICENSE"
+    },
+    "portable": {
+      "artifactName": "DiskLens-Portable.exe"
+    }
+  }
 }
