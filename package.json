@@ -1,11 +1,11 @@
 {
   "name": "disklens",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Disk space analyzer with a File Explorer feel. See what is big, and learn what happens before you delete it.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --publish never"
+    "dist": "node native/build.js && electron-builder --win --publish never"
   },
   "author": "EEDTAN",
   "license": "MIT",
@@ -84,6 +84,12 @@
         "owner": "EEDTAN",
         "repo": "DiskLens",
         "releaseType": "release"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "native/fastscan.exe",
+        "to": "fastscan.exe"
       }
     ]
   },

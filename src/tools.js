@@ -23,7 +23,7 @@ function addBtnX(it) {
 
 /* ---------- the collector ---------- */
 async function addTray(list) {
-  const fresh = list.filter(x => x && !inTray(x.path));
+  const picked = list.filter(x => x && !inTray(x.path)), fresh = picked.filter(x => !picked.some(y => y !== x && within(x.path, y.path)));
   if (!fresh.length) return;
   const risks = await api.classifyMany(fresh.map(x => [x.path, !!x.dir]));
   const contents = fresh.map((x, i) => x.contents !== undefined ? !!x.contents : !!(x.dir && risks[i].contents));
@@ -121,8 +121,8 @@ async function runOp() {
   S.an.items = null; S.old.items = null;
   if (okList.length) S.history = [{ at: Date.now(), action: o.action, n: okList.length, bytes: res.results.reduce((a, x) => a + (x.freed || 0), 0), dest: o.action === 'move' ? o.dest : undefined }, ...S.history].slice(0, 50);
   api.setSettings({ history: S.history });
-  S.drives = await api.drives();
   S.modal = 'done'; render();
+  api.drives().then(d => { S.drives = d; });
   if (S.tool === 'explorer' && S.cur) go(S.cur, false); else loadTool();
 }
 
@@ -131,10 +131,12 @@ async function loadTool() {
   if (S.tool === 'analysis' && !S.an.items) { S.an.items = remember(await api.analysis()); render(); }
   if (S.tool === 'old' && !S.old.items) { const l = remember(await api.oldFiles(S.old.months)); const rk = await api.classifyMany(l.map(x => [x.path, false])); l.forEach((x, i) => Object.assign(x, rk[i])); S.old.items = l; render(); }
 }
-function rowX(it, total, sub) {
+function rowX(it, total, sub, grad) {
   const line = sub !== undefined ? sub : (it.contents ? t('an.contentsOnly') + ' · ' : '') + ruleText(it.rule, 'what');
-  return `<div class="rw an xr ${S.xsel === it.path ? 'sel' : ''}" data-p="${esc(it.path)}" draggable="true" style="${gradOf(it)}" title="${esc(it.path)}">${visual(it)}<div class="nm"><b>${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</b><small>${esc(line)}</small></div><div class="bar"><i style="width:${Math.max(2, it.size / (total || 1) * 100)}%"></i></div><div class="s">${esc(F(it.size))}</div>${addBtnX(it)}</div>`;
+  return `<div class="rw an xr ${S.xsel === it.path ? 'sel' : ''}" data-p="${esc(it.path)}" draggable="true" style="${grad || gradOf(it)}" title="${esc(it.path)}">${visual(it, 0, grad)}<div class="nm"><b>${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</b><small>${esc(line)}</small></div><div class="bar"><i style="width:${Math.max(2, it.size / (total || 1) * 100)}%"></i></div><div class="s">${esc(F(it.size))}</div>${addBtnX(it)}</div>`;
 }
+// One colour per level: everything at the same depth shares it, the next level down gets the next colour.
+const DEPTH = [['#b79bff', '#7c4dff'], ['#ff80d8', '#c76cff'], ['#5eead4', '#38bdf8'], ['#ffc15e', '#ff9f2e'], ['#7dd3fc', '#6aa5ff'], ['#86efac', '#22c55e']];
 function treeHTML(list, total, subOf) {
   const rootPath = S.root.replace(/[\\/]+$/, ''), top = { path: rootPath, kids: new Map(), items: [], size: 0, count: 0 };
   for (const it of list) {
@@ -146,18 +148,16 @@ function treeHTML(list, total, subOf) {
     }
     n.items.push(it);
   }
-  // A chain of folders with nothing else in it is shown as one line: Users\Name\AppData\Local
-  const squash = n => {
-    if (n !== top) while (n.kids.size === 1 && !n.items.length) { const c = [...n.kids.values()][0]; n.name += '\\' + c.name; n.path = c.path; n.kids = c.kids; n.items = c.items; }
-    n.kids.forEach(squash);
-  };
-  squash(top);
-  const body = n => n.items.sort((a, b) => b.size - a.size).map(it => rowX(it, total, subOf ? subOf(it) : undefined)).join('')
-    + [...n.kids.values()].sort((a, b) => b.size - a.size).map(k => {
-      const closed = S.closed.has(k.path);
-      return `<div class="tf ${closed ? 'closed' : ''}" data-tf="${esc(k.path)}" title="${esc(k.path)}"><span class="chev">▾</span><span class="fic">${FOLDER}</span><b>${esc(k.name)}</b><small>${esc(t('ex.items', { n: N(k.count) }))}</small><span class="fs">${esc(F(k.size))}</span></div>${closed ? '' : `<div class="tg">${body(k)}</div>`}`;
+  const body = (n, depth) => {
+    const [a, b] = DEPTH[depth % DEPTH.length], grad = `--a:${a};--b:${b}`;
+    const folders = [...n.kids.values()].map(k => ({ k, size: k.size })), files = n.items.map(it => ({ it, size: it.size }));
+    return [...folders, ...files].sort((x, y) => y.size - x.size).map(x => {
+      if (x.it) return rowX(x.it, total, subOf ? subOf(x.it) : undefined, grad);
+      const k = x.k, closed = S.closed.has(k.path);
+      return `<div class="rw an tfr ${closed ? 'closed' : ''}" data-tf="${esc(k.path)}" title="${esc(k.path)}" style="${grad}"><div class="ic" style="${grad}">${FOLDER}</div><div class="nm"><b>${esc(k.name)}</b><small>${esc(t('ex.items', { n: N(k.count) }))}</small></div><div class="bar"><i style="width:${Math.max(2, k.size / (total || 1) * 100)}%"></i></div><div class="s">${esc(F(k.size))}</div><span class="chevb">▾</span></div>${closed ? '' : `<div class="tg" style="--lc:${b}">${body(k, depth + 1)}</div>`}`;
     }).join('');
-  return body(top);
+  };
+  return body(top, 0);
 }
 function analysisHTML() {
   if (!S.an.items) return `<div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
@@ -169,7 +169,7 @@ function analysisHTML() {
 function riskPanel(it) {
   if (!it) {
     const k = S.tool;
-    return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t('nav.' + (k === 'analysis' ? 'analysis' : k === 'dups' ? 'dups' : 'old')))}</span><h2>${esc(t('panel.pick'))}</h2><small>${esc(t('panel.pickHint.' + k))}</small></div><div class="det"><div class="card"><h4>${esc(t('an.legend'))}</h4>${['safe', 'caution', 'danger'].map(r => `<p class="lg"><i style="background:${RC[r]}"></i><span><b>${esc(t('risk.' + r))}</b> · ${esc(t('risk.' + r + '.desc'))}</span></p>`).join('')}</div></div>`;
+    return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t(k === 'analysis' ? 'nav.analysis' : k === 'dups' ? 'nav.dups' : 'ov.old'))}</span><h2>${esc(t('panel.pick'))}</h2><small>${esc(t('panel.pickHint.' + k))}</small></div><div class="det"><div class="card"><h4>${esc(t('an.legend'))}</h4>${['safe', 'caution', 'danger'].map(r => `<p class="lg"><i style="background:${RC[r]}"></i><span><b>${esc(t('risk.' + r))}</b> · ${esc(t('risk.' + r + '.desc'))}</span></p>`).join('')}</div></div>`;
   }
   const tip = ruleText(it.rule, 'tip'), k = kindOf(it);
   const letter = it.rule === 'recycle' ? it.path[0].toUpperCase() : null;

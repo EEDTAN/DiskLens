@@ -140,7 +140,7 @@ async function run(opts, send, extraProtected = []) {
           done += before; results.push({ path: x.path, ok: true, freed, gone: false, skipped });
           return;
         }
-        if (opts.action === 'bin') { phase = 'bin'; await shell.trashItem(x.path); }
+        if (opts.action === 'bin') { phase = 'bin'; if (await exists(x.path)) await shell.trashItem(x.path); }
         else if (opts.action === 'perm') {
           if (opts.secure) { phase = 'overwrite'; const start = done; await overwrite(x.path, n => { done += n; }); done = start; }
           phase = 'delete'; await fsp.rm(x.path, { recursive: true, force: false, maxRetries: 2 });
@@ -168,8 +168,20 @@ async function run(opts, send, extraProtected = []) {
         done += before;
       }
     };
+    // Recycle Bin: send everything in one batch first (one Windows operation is much faster than one per item).
+    // Anything still there afterwards goes through shell.trashItem below, which reports why it failed.
+    if (opts.action === 'bin' && module.exports.trashExe && fs.existsSync(module.exports.trashExe)) {
+      const batch = plan.filter(x => !x.contents).map(x => x.path);
+      if (batch.length > 1) {
+        phase = 'bin'; current = batch[0]; tick();
+        await new Promise(res => {
+          const c = require('child_process').execFile(module.exports.trashExe, ['--trash'], { windowsHide: true, timeout: 10 * 60 * 1000 }, () => res());
+          c.stdin.end(batch.join('\n'), 'utf8');
+        });
+      }
+    }
     // Moving copies one item at a time; deleting runs a few at once.
-    await pool(plan, opts.action === 'move' ? 1 : 3, one);
+    await pool(plan, opts.action === 'move' ? 1 : 8, one);
   } catch (e) {
     for (const x of plan) if (!results.find(r => r.path === x.path)) results.push({ path: x.path, ok: false, error: e.code || String(e), freed: 0 });
   } finally { clearInterval(timer); }

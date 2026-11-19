@@ -78,6 +78,7 @@ function protectedReason(p, extra = [], opts = {}) {
     /^[a-z]:\\users\\[^\\]+$/, /^[a-z]:\\(?:[^\\]+\\)*?users\\[^\\]+\\appdata(\\(local|roaming|locallow))?$/,
     /^[a-z]:\\users\\[^\\]+\\(documents|pictures|videos|music|desktop|downloads|onedrive)$/,
     /^[a-z]:\\\$recycle\.bin(\\|$)/, /^[a-z]:\\(boot|efi|bootmgr|bootnxt|config\.msi|perflogs)(\\|$)/,
+    /^[a-z]:\\(hiberfil|pagefile|swapfile)\.sys$/, // in use by Windows; removed through Windows settings, never deleted directly
   ];
   if (fixed.some(re => re.test(l))) return 'system';
   if (inExtra()) return 'app';

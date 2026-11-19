@@ -33,7 +33,8 @@ app.on('window-all-closed', () => { if (worker) worker.terminate(); app.quit(); 
 
 /* ---------- settings ---------- */
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
-const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); } catch { return { lang: null, recent: [] }; } };
+// A byte-order mark (added by Notepad or PowerShell) must not make the settings look empty, or saving would wipe them.
+const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFile(), 'utf8').replace(/^\uFEFF/, '')); } catch { return { lang: null, recent: [] }; } };
 ipcMain.handle('settings:get', () => readSettings());
 ipcMain.handle('settings:set', (_, patch) => {
   const next = { ...readSettings(), ...patch };
@@ -85,10 +86,41 @@ ipcMain.handle('dialog:folder', async () => {
 });
 
 /* ---------- scanning (read-only) ---------- */
+// The fast scanner (native/fastscan.cs) is used when it is there; scanner.js is the fallback.
+const fastExe = app.isPackaged ? path.join(process.resourcesPath, 'fastscan.exe') : path.join(__dirname, 'native', 'fastscan.exe');
+ops.trashExe = fastExe; // the same helper moves many items to the Recycle Bin at once
+function fastScan(root) {
+  const child = require('child_process').spawn(fastExe, [root], { windowsHide: true });
+  const ev = new (require('events'))();
+  const out = []; let errBuf = '';
+  child.stdout.on('data', d => out.push(d));
+  child.stderr.on('data', d => {
+    errBuf += d; const lines = errBuf.split('\n'); errBuf = lines.pop();
+    const last = lines.filter(Boolean).pop();
+    if (last) try { ev.emit('message', { type: 'progress', ...JSON.parse(last) }); } catch { /* partial line */ }
+  });
+  // If the fast scanner cannot run (blocked, missing), scan again with scanner.js instead of failing.
+  let failed = false;
+  const fallback = () => {
+    if (failed) return; failed = true;
+    const w = new Worker(path.join(__dirname, 'scanner.js'), { workerData: { root } });
+    w.on('message', m => ev.emit('message', m)); w.on('error', e => ev.emit('error', e));
+    ev.terminate = () => w.terminate();
+  };
+  child.on('error', fallback);
+  child.on('close', code => {
+    if (child.killed || failed) return;
+    if (code !== 0) return fallback();
+    let m; try { m = JSON.parse(Buffer.concat(out).toString('utf8')); } catch { return fallback(); }
+    ev.emit('message', { type: 'done', ...m });
+  });
+  ev.terminate = () => child.kill();
+  return ev;
+}
 ipcMain.handle('scan:start', (_, { root }) => {
   if (worker) worker.terminate();
   const t0 = Date.now();
-  worker = new Worker(path.join(__dirname, 'scanner.js'), { workerData: { root } });
+  worker = process.platform === 'win32' && fs.existsSync(fastExe) ? fastScan(root) : new Worker(path.join(__dirname, 'scanner.js'), { workerData: { root } });
   worker.on('message', m => {
     if (!win || win.isDestroyed()) return;
     if (m.type === 'progress') win.webContents.send('scan:progress', m);
@@ -222,6 +254,8 @@ function forget(p, freed, gone) {
   const parent = chain[chain.length - 1], name = (parts[parts.length - 1] || '').toLowerCase();
   for (const n of chain) n.s = Math.max(0, n.s - freed);
   const kid = parent.c.find(k => k.n.toLowerCase() === name);
+  // Gone for good: the file and folder counts above it shrink too (a file is not a node, so it counts as one file).
+  if (gone) { const f = kid ? kid.f : 1, d = kid ? kid.d + 1 : 0; for (const n of chain) { n.f = Math.max(0, n.f - f); n.d = Math.max(0, n.d - d); } }
   if (gone) { parent.c = parent.c.filter(k => k.n.toLowerCase() !== name); if (parent.b) parent.b = parent.b.filter(b => b[0].toLowerCase() !== name); }
   else if (kid) kid.s = Math.max(0, kid.s - freed);
 }

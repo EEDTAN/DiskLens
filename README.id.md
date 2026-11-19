@@ -179,6 +179,8 @@ npm start          # jalankan app
 npm run dist       # buat dist/DiskLens-Setup.exe dan dist/DiskLens-Portable.exe
 ```
 
+`npm start` memakai `scanner.js` untuk scan. Jalankan `node native/build.js` sekali untuk membuat pemindai cepat (`native/fastscan.cs`) dengan compiler C# bawaan Windows; `npm run dist` sudah melakukannya sendiri.
+
 Push tag seperti `v0.2.0` akan membuat kedua file lewat GitHub Actions dan melampirkannya ke sebuah rilis.
 
 ## Terinspirasi dari SquirrelDisk

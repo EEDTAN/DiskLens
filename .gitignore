@@ -5,3 +5,4 @@ design/
 *.log
 .DS_Store
 Thumbs.db
+native/*.exe

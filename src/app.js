@@ -4,7 +4,7 @@ const S = {
   screen: 'home', prev: 'home', lang: 'en', langs: {}, drives: [], recent: [], paths: {}, version: '',
   root: null, rootInfo: null, scan: null, quick: [],
   cur: null, hist: [], hp: 0, entries: [], view: [], total: null, info: null, loading: false, err: null, truncated: false,
-  sel: new Set(), anchor: null, sortK: 'size', sortD: -1, mode: 'list', q: '', limit: 1500, viewer: null, props: null,
+  sel: new Set(), anchor: null, xopen: new Set(), kids: new Map(), sortK: 'size', sortD: -1, mode: 'list', q: '', limit: 1500, viewer: null, props: null,
 };
 
 /* ---------- language ---------- */
@@ -136,11 +136,23 @@ function overviewHTML() {
 /* ---------- explorer ---------- */
 const itemOf = i => S.view[i];
 function buildView() {
+  const k = S.sortK, d = S.sortD, val = e => k === 'name' ? e.name.toLowerCase() : k === 'date' ? e.mtime : (e.size == null ? -1 : e.size);
+  const sort = L => L.sort((a, b) => { if (k === 'name' && a.dir !== b.dir) return a.dir ? -1 : 1; const x = val(a), y = val(b); return d * (x < y ? -1 : x > y ? 1 : 0); });
   let L = S.entries.slice();
   if (S.q) L = L.filter(e => e.name.toLowerCase().includes(S.q.toLowerCase()));
-  const k = S.sortK, d = S.sortD, val = e => k === 'name' ? e.name.toLowerCase() : k === 'date' ? e.mtime : (e.size == null ? -1 : e.size);
-  L.sort((a, b) => { if (k === 'name' && a.dir !== b.dir) return a.dir ? -1 : 1; const x = val(a), y = val(b); return d * (x < y ? -1 : x > y ? 1 : 0); });
-  S.view = L;
+  const tree = S.mode === 'list' && !S.q, out = [];
+  const add = (list, depth) => sort(list).forEach(e => {
+    e.depth = depth; out.push(e);
+    if (tree && e.dir && S.xopen.has(e.path) && S.kids.get(e.path)) add(S.kids.get(e.path).slice(), depth + 1);
+  });
+  add(L, 0);
+  S.view = out;
+}
+async function toggleOpen(p) {
+  if (S.xopen.has(p)) { S.xopen.delete(p); return render(); }
+  S.xopen.add(p);
+  if (!S.kids.get(p)) { const r = await api.list(p); S.kids.set(p, r.error ? [] : r.entries); }
+  render();
 }
 const folderTotal = () => S.total != null ? S.total : S.entries.reduce((a, e) => a + (e.size || 0), 0);
 function sideHTML() {
@@ -160,8 +172,8 @@ function crumbs() {
   return out.map(c => `<button data-go="${esc(c.p)}">${esc(c.n)}</button>`).join('<span>›</span>');
 }
 function statText() {
-  const n = S.sel.size, sum = [...S.sel].reduce((a, p) => { const e = S.entries.find(x => x.path === p); return a + (e && e.size || 0); }, 0);
-  return (n ? t('ex.selected', { n }) + ' · ' + F(sum) + ' · ' : '') + t('ex.items', { n: N(S.view.length) }) + ' · ' + F(folderTotal()) + (n ? '' : ' · ' + t('ex.hint'));
+  const n = S.sel.size, sum = [...S.sel].reduce((a, p) => { const e = S.view.find(x => x.path === p); return a + (e && e.size || 0); }, 0);
+  return (n ? t('ex.selected', { n }) + ' · ' + F(sum) + ' · ' : '') + t('ex.items', { n: N(S.view.filter(e => !e.depth).length) }) + ' · ' + F(folderTotal()) + (n ? '' : ' · ' + t('ex.hint'));
 }
 function workHTML() {
   if (S.tool !== 'explorer') return `<div class="work">${sideHTML()}<div class="tbar">${toolTop()}</div><main>${toolMain()}</main>${trayHTML()}<div class="panel" id="panel">${toolPanel()}</div></div>${modalHTML()}${viewerHTML()}${propsHTML()}`;
@@ -172,10 +184,10 @@ function workHTML() {
   <div class="tb2"><button class="selall" id="selall" data-act="selall">${esc(selAllLabel())}</button><span class="info" id="stat">${esc(statText())}</span><span class="sp"></span><div class="seg">${[['list', 'ex.list'], ['grid', 'ex.grid'], ['map', 'ex.map']].map(([k, l]) => `<button class="${S.mode === k ? 'on' : ''}" data-mode="${k}">${esc(t(l))}</button>`).join('')}</div></div></div>
   <main>${expMain()}</main>${trayHTML()}<div class="panel" id="panel">${panelHTML()}</div></div>${modalHTML()}${viewerHTML()}${propsHTML()}`;
 }
-function visual(e, i) {
+function visual(e, i, grad) {
   const k = kindOf(e);
   if (k === 'foto' || k === 'video') return `<div class="th" data-thp="${esc(e.path)}">${k === 'video' ? `<div class="play"><i></i></div>` : ''}</div>`;
-  return `<div class="ic" style="${gradOf(e)}">${glyph(e)}</div>`;
+  return `<div class="ic" style="${grad || gradOf(e)}">${glyph(e)}</div>`;
 }
 function expMain() {
   if (S.loading) return `<div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
@@ -186,10 +198,15 @@ function expMain() {
   const moreBtn = more > 0 ? `<button class="morebtn" data-act="more">${esc(t('ex.more', { n: N(more) }))}</button>` : '';
   if (S.mode === 'grid') return `<div class="exp"><div class="grid">${shown.map((e, i) => `<div class="gf ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" draggable="true" style="${gradOf(e)}">${kindOf(e) === 'foto' || kindOf(e) === 'video' ? visual(e, i) : `<div class="fi">${glyph(e)}</div>`}<b>${esc(e.name)}</b><small><span>${esc(F(e.size))}</span><span>${esc(t('kind.' + kindOf(e)))}</span></small><button class="add ${inTray(e.path) ? 'in' : ''}" data-tadd="${esc(e.path)}" title="${esc(t('tray.add'))}">${inTray(e.path) ? '✓' : '+'}</button></div>`).join('')}</div>${moreBtn}</div>`;
   const hb = (k, l) => `<button class="${S.sortK === k ? 'on' : ''}" data-sort="${k}">${esc(t(l))}${S.sortK === k ? (S.sortD < 0 ? ' ↓' : ' ↑') : ''}</button>`;
+  let depth = 0;
   return `<div class="exp"><div class="rw hd"><span></span>${hb('name', 'ex.name')}${hb('size', 'ex.share')}${hb('size', 'ex.size')}<span>%</span>${hb('date', 'ex.modified')}</div>${shown.map((e, i) => {
-    const pc = e.size == null ? 0 : e.size / tot * 100, k = kindOf(e);
-    return `<div class="rw ${e.dir ? 'folder' : ''} ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" draggable="true" style="${gradOf(e)}">${visual(e, i)}<div class="nm"><b>${esc(e.name)}</b><small>${esc(e.dir ? (e.files != null ? t('ex.itemsIn', { n: N(e.files) }) : t('kind.folder')) : t('kind.' + k))}</small></div><div class="bar"><i style="width:${Math.max(e.size ? 1.5 : 0, pc)}%"></i></div><div class="s">${esc(F(e.size))}</div><div class="p">${e.size == null ? '' : (pc < 1 ? '<1' : Math.round(pc)) + '%'}</div><div class="dt">${esc(fdate(e.mtime))}</div><button class="add ${inTray(e.path) ? 'in' : ''}" data-tadd="${esc(e.path)}" title="${esc(t('tray.add'))}">${inTray(e.path) ? '✓' : '+'}</button></div>`;
-  }).join('')}${moreBtn}</div>`;
+    let wrap = '';
+    while (depth < (e.depth || 0)) { wrap += `<div class="tg" style="--lc:${DEPTH[depth % DEPTH.length][1]}">`; depth++; }
+    while (depth > (e.depth || 0)) { wrap += '</div>'; depth--; }
+    const pc = e.size == null ? 0 : e.size / tot * 100, k = kindOf(e), [ga, gb] = DEPTH[(e.depth || 0) % DEPTH.length], grad = S.q ? gradOf(e) : `--a:${ga};--b:${gb}`;
+    const xt = e.dir && !S.q ? `<span class="xt ${S.xopen.has(e.path) ? 'on' : ''}" data-xt="${esc(e.path)}">▸</span>` : '';
+    return wrap + `<div class="rw ${e.dir ? 'folder' : ''} ${S.sel.has(e.path) ? 'sel' : ''}" data-i="${i}" draggable="true" style="${grad}">${visual(e, i, grad)}<div class="nm"><b>${xt}${esc(e.name)}</b><small>${esc(e.dir ? (e.files != null ? t('ex.itemsIn', { n: N(e.files) }) : t('kind.folder')) : t('kind.' + k))}</small></div><div class="bar"><i style="width:${Math.max(e.size ? 1.5 : 0, pc)}%"></i></div><div class="s">${esc(F(e.size))}</div><div class="p">${e.size == null ? '' : (pc < 1 ? '<1' : Math.round(pc)) + '%'}</div><div class="dt">${esc(fdate(e.mtime))}</div><button class="add ${inTray(e.path) ? 'in' : ''}" data-tadd="${esc(e.path)}" title="${esc(t('tray.add'))}">${inTray(e.path) ? '✓' : '+'}</button></div>`;
+  }).join('') + '</div>'.repeat(depth)}${moreBtn}</div>`;
 }
 function drawMap() {
   const box = $('tmw'); if (!box) return;
@@ -297,13 +314,15 @@ async function go(p, push = true) {
   const r = await api.list(p); if (S.cur !== p) return;
   S.loading = false;
   if (r.error) { S.err = r.error; S.entries = []; } else { S.entries = r.entries; S.total = r.total; S.info = r.info; S.truncated = r.truncated; }
+  S.kids = new Map(await Promise.all([...S.xopen].map(async x => { const k = await api.list(x); return [x, k.error ? [] : k.entries]; })));
+  if (S.cur !== p) return;
   render();
 }
 function explore() { S.screen = 'work'; S.tool = 'explorer'; S.hist = []; S.hp = 0; go(S.root); }
 const goHist = d => { const p = S.hp + d; if (p < 0 || p >= S.hist.length) return; S.hp = p; go(S.hist[p], false); };
 const openEntry = e => { if (e.dir) go(e.path); else if (['foto', 'video'].includes(kindOf(e))) openViewer(e); else api.open(e.path).then(err => err && toast(t('toast.openFail', { e: err }))); };
 const copyPaths = list => { api.copy(list.map(e => e.path).join('\n')); toast(list.length > 1 ? t('toast.copiedMany', { n: list.length }) : t('toast.copied')); };
-const selList = () => [...S.sel].map(p => S.entries.find(e => e.path === p)).filter(Boolean);
+const selList = () => [...S.sel].map(p => S.view.find(e => e.path === p)).filter(Boolean);
 
 /* ---------- selection ---------- */
 function clickRow(ev, el) {
@@ -380,6 +399,7 @@ document.addEventListener('click', ev => {
   if (el = c('[data-ext]')) return api.external(el.dataset.ext);
   if (el = c('[data-go]')) return go(el.dataset.go);
   if (el = c('[data-mode]')) { S.mode = el.dataset.mode; return render(); }
+  if (el = c('[data-xt]')) return toggleOpen(el.dataset.xt);
   if (el = c('[data-sort]')) { const k = el.dataset.sort; if (S.sortK === k) S.sortD *= -1; else { S.sortK = k; S.sortD = k === 'name' ? 1 : -1; } return render(); }
   if (el = c('[data-vnav]')) { const v = S.viewer, n = v.list.length; v.i = (v.i + +el.dataset.vnav + n) % n; return render(); }
   if (el = c('[data-act]')) {

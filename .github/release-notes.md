@@ -7,6 +7,26 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.4
+
+- **Much faster scanning**: a small Windows scanner reads sizes straight from the folder listing. A whole C: drive with 778,000 files went from 175 seconds to 7.5 seconds on the test PC. If it cannot run, DiskLens falls back to the old scanner.
+- **More accurate totals**: pagefile.sys, hiberfil.sys and swapfile.sys are now counted (the old scanner could not read them). All three stay locked.
+- **Faster Recycle Bin**: all items go to the Recycle Bin in one Windows operation. Items Windows cannot recycle are reported, never deleted for good.
+- **Everything is a tree**: Explorer's list view opens folders in place with ▸. Analysis and Old files show every folder level. Folder rows look like file rows, and each level has its own colour.
+- Selecting a folder together with things inside it no longer shows a message. Only the folder goes into the collector.
+- Softer shadows and glows, no hard bands under the list, and smooth hover and press effects.
+- Fixed: settings with a byte-order mark (for example after editing in Notepad) were read as empty.
+
+## Yang baru di 0.3.4
+
+- **Scan jauh lebih cepat**: pemindai kecil khusus Windows membaca ukuran langsung dari daftar folder. Seluruh drive C: dengan 778.000 file turun dari 175 detik ke 7,5 detik di PC uji. Kalau pemindai ini tidak bisa jalan, DiskLens kembali memakai pemindai lama.
+- **Total lebih akurat**: pagefile.sys, hiberfil.sys, dan swapfile.sys sekarang ikut dihitung (pemindai lama tidak bisa membacanya). Ketiganya tetap dikunci.
+- **Recycle Bin lebih cepat**: semua item masuk Recycle Bin dalam satu operasi Windows. Item yang tidak bisa masuk Recycle Bin dilaporkan, tidak pernah dihapus permanen diam-diam.
+- **Semuanya bertingkat**: tampilan Daftar di Penjelajah membuka folder di tempat dengan ▸. Analisis dan File lama menampilkan setiap tingkat folder. Baris folder sama seperti baris file, dan tiap tingkat punya warnanya sendiri.
+- Memilih folder bersama isinya tidak lagi memunculkan pesan. Hanya foldernya yang masuk keranjang.
+- Bayangan dan glow lebih lembut, tidak ada lagi pita kaku di bawah daftar, dan efek hover serta tekan lebih halus.
+- Diperbaiki: pengaturan yang punya penanda BOM (misalnya setelah diedit di Notepad) terbaca kosong.
+
 ## What is new in 0.3.3
 
 - **Dark theme**: Settings → Theme → Light, Dark, or Same as Windows.
