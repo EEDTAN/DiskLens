@@ -393,7 +393,7 @@
   "ex.selectAll": "Select all",
   "ex.selectNone": "Select none",
   "tray.addAll": "Add all to collector",
-  "tray.collectAll": "Collect all ({n} · {size})",
+  "tray.collectAll": "Select all ({n} · {size})",
   "upd.title": "Updates",
   "upd.current": "Version {v}",
   "upd.check": "Check for updates",
@@ -411,5 +411,7 @@
   "upd.portableNote": "The portable version cannot update itself. Download the new file from the release page and replace the old one.",
   "upd.devNote": "Updates are off when DiskLens runs from source.",
   "upd.error": "Could not check for updates ({e}).",
-  "upd.auto": "Check for updates when DiskLens starts"
+  "upd.auto": "Check for updates when DiskLens starts",
+  "ctx.deleteBin": "Recycle Bin…",
+  "ctx.deletePerm": "Delete permanently…"
 }

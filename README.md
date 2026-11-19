@@ -134,7 +134,8 @@ Big files (50 MB or more) that have not changed in 6, 12, 24 or 36 months.
 |---|---|
 | `Enter` / double-click | Open a folder, preview a photo or video, open any other file |
 | `Space` | Preview the selected photo or video |
-| `Delete` | Put the selection in the collector and open the review |
+| `Delete` | Review the selection with **Recycle Bin** chosen |
+| `Shift` + `Delete` | Review the selection with **Delete permanently** chosen |
 | `Backspace`, `Alt` + `↑` | Up one folder |
 | `Alt` + `←` / `→` | Back / forward |
 | `↑` `↓`, `Shift` + `↑` `↓` | Move or extend the selection |

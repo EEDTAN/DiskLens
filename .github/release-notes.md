@@ -7,6 +7,16 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.1
+
+- **Delete straight from a selection**: the selection panel in Explorer has **Recycle Bin…** and **Delete permanently…**. Both open the review with that option already chosen. `Delete` and `Shift` + `Delete` do the same, like in File Explorer.
+- **Select all / Select none** in Analysis and Old files (was "Collect all"), plus Recycle Bin and Delete permanently buttons once items are picked.
+
+## Yang baru di 0.3.1
+
+- **Hapus langsung dari pilihan**: panel pilihan di Penjelajah punya **Recycle Bin…** dan **Hapus permanen…**, yang membuka pemeriksaan dengan pilihan itu sudah terpilih. `Delete` dan `Shift` + `Delete` juga begitu, seperti di File Explorer.
+- **Pilih semua / Batal pilih semua** di Analisis dan File lama, plus tombol Recycle Bin dan Hapus permanen setelah item dipilih.
+
 ## What is new in 0.3.0
 
 - **Automatic updates**: the installed app checks GitHub when it starts and offers **Update now**, then **Restart and install**. Turn it off or check by hand in Settings → Updates. The portable version tells you about new versions and opens the download page.

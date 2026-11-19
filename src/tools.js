@@ -34,7 +34,8 @@ async function addTray(list) {
   if (blocked) toast(t('tray.blocked', { n: blocked }));
   render();
 }
-async function deleteNow(list) { const before = S.tray.length; await addTray(list); if (S.tray.length && (S.tray.length > before || list.every(x => inTray(x.path)))) openConfirm(); }
+async function deleteNow(list, action) { const before = S.tray.length; await addTray(list); if (S.tray.length && (S.tray.length > before || list.every(x => inTray(x.path)))) { if (action) S.op.action = action; openConfirm(); } }
+function reviewWith(action) { if (!S.tray.length) return; S.op.action = action; openConfirm(); }
 function trayHTML() {
   const tot = S.tray.reduce((a, x) => a + x.size, 0);
   return `<div class="tray" id="tray"><div class="tt"><b>${esc(t('tray.title'))}</b><div class="n">${esc(F(tot))}</div><small>${esc(t('tray.count', { n: S.tray.length }))}</small></div>
@@ -132,7 +133,7 @@ function analysisHTML() {
   const all = S.an.items.filter(x => !gone(x.path)), by = k => all.filter(x => x.risk === k), list = by(S.an.tab), tot = list.reduce((a, x) => a + x.size, 0);
   const tabs = ['safe', 'caution', 'danger'].map(k => { const l = by(k); return `<button class="at ${S.an.tab === k ? 'on' : ''}" data-antab="${k}" style="--c:${RC[k]}"><i></i><b>${esc(t('risk.' + k))}</b><span>${esc(F(l.reduce((a, x) => a + x.size, 0)))}</span><small>${esc(t('ex.items', { n: N(l.length) }))}</small></button>`; }).join('');
   const shown = list.slice(0, 400);
-  return `<div class="ats">${tabs}</div>${collectAllBar(shown) ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? shown.map(x => rowX(x, tot)).join('') : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
+  return `<div class="ats">${tabs}</div>${pickable(shown).length ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? shown.map(x => rowX(x, tot)).join('') : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
 }
 function riskPanel(it) {
   if (!it) {
@@ -192,10 +193,16 @@ function toolTop() {
   const ti = { analysis: 'nav.analysis', dups: 'nav.dups', old: 'ov.old' }[S.tool], sub = { analysis: 'an.sub', dups: 'dups.sub', old: 'old.sub' }[S.tool];
   return `<div class="tb1"><div style="flex:1"><small style="color:var(--mute);font-size:13px">${esc(t(sub))}</small><h1 style="font-size:26px;letter-spacing:-.7px">${esc(t(ti))}</h1></div></div>`;
 }
-const addable = list => list.filter(it => it.risk !== 'danger' && !it.rest && !inTray(it.path));
+const pickable = list => list.filter(it => it.risk !== 'danger' && !it.rest);
+const addable = list => pickable(list).filter(it => !inTray(it.path));
 function collectAllBar(list) {
-  const l = addable(list), size = l.reduce((a, v) => a + v.size, 0);
-  return l.length ? `<button class="pbtn sm" data-act2="collectall">🧺 ${esc(t('tray.collectAll', { n: N(l.length), size: F(size) }))}</button>` : '';
+  const all = pickable(list), l = addable(list), picked = all.length - l.length;
+  if (!all.length) return '';
+  const toggle = l.length
+    ? `<button class="pbtn sm" data-act2="collectall">☑ ${esc(t('tray.collectAll', { n: N(l.length), size: F(l.reduce((a, v) => a + v.size, 0)) }))}</button>`
+    : `<button class="pbtn sm ghostp" data-act2="uncollectall">☐ ${esc(t('ex.selectNone'))}</button>`;
+  const del = picked ? `<button class="delb" data-act2="revbin" title="Delete">🗑 ${esc(t('ctx.deleteBin'))}</button><button class="delb perm" data-act2="revperm" title="Shift+Delete">⚠ ${esc(t('ctx.deletePerm'))}</button>` : '';
+  return toggle + del;
 }
 const currentList = () => S.tool === 'analysis' ? (S.an.items || []).filter(v => v.risk === S.an.tab && !gone(v.path)).slice(0, 400) : S.tool === 'old' ? (S.old.items || []).filter(v => !gone(v.path)).slice(0, 400) : [];
 const toolMain = () => S.tool === 'analysis' ? analysisHTML() : S.tool === 'dups' ? dupsHTML() : oldHTML();
@@ -205,7 +212,7 @@ function toolCtx(ev) {
   const it = itemByPath(row.dataset.p); if (!it) return;
   S.xsel = it.path; document.querySelectorAll('.xr').forEach(x => x.classList.toggle('sel', x.dataset.p === it.path)); $('panel').innerHTML = toolPanel(); applyPreviewThumbs();
   const L = [];
-  if (it.risk !== 'danger' && !it.rest) L.push({ t: t('tray.add'), ic: '🧺', f: () => addTray([it]) }, { t: t('ctx.delete'), ic: '🗑', k: 'Del', f: () => deleteNow([it]) }, { sep: true });
+  if (it.risk !== 'danger' && !it.rest) L.push({ t: t('tray.add'), ic: '🧺', f: () => addTray([it]) }, { t: t('ctx.deleteBin'), ic: '🗑', k: 'Del', f: () => deleteNow([it], 'bin') }, { t: t('ctx.deletePerm'), ic: '⚠', k: 'Shift+Del', f: () => deleteNow([it], 'perm') }, { sep: true });
   L.push({ t: t('an.openLocation'), ic: '📂', f: () => reveal(it.path) }, { t: t('ctx.show'), ic: '🗂', f: () => api.show(it.path) }, { t: t('ctx.copyPath'), ic: '📋', f: () => copyPaths([it]) });
   if (!it.dir) L.push({ t: t('ctx.openWith'), ic: '▶', f: () => api.open(it.path) });
   showCtx(ev.clientX, ev.clientY, L);
@@ -241,6 +248,9 @@ document.addEventListener('click', async ev => {
     if (a === 'dreset') { S.dups.state = 'idle'; return render(); }
     if (a === 'dall') return addTray(dupGroups().flatMap(dupExtras));
     if (a === 'collectall') return addTray(addable(currentList()));
+    if (a === 'uncollectall') { const l = currentList(); S.tray = S.tray.filter(x => !l.some(v => same(v.path, x.path))); return render(); }
+    if (a === 'revbin') return reviewWith('bin');
+    if (a === 'revperm') return reviewWith('perm');
   }
   if (el = c('.xr[data-p]')) { S.xsel = el.dataset.p; document.querySelectorAll('.xr').forEach(x => x.classList.toggle('sel', x.dataset.p === S.xsel)); $('panel').innerHTML = toolPanel(); applyPreviewThumbs(); }
 });
@@ -255,5 +265,5 @@ document.addEventListener('input', e => { if (e.target.id === 'hp') { S.op.word 
 document.addEventListener('dblclick', e => { const el = e.target.closest('.xr[data-p]'); if (el && S.tool !== 'explorer') { const it = itemByPath(el.dataset.p); if (it && it.dir) reveal(it.path); else if (it) api.open(it.path); } });
 document.addEventListener('keydown', e => {
   if (S.screen !== 'work' || S.modal || S.viewer || S.props || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) { if (e.key === 'Escape' && S.modal === 'confirm') { S.modal = null; render(); } return; }
-  if (e.key === 'Delete') { if (S.tool === 'explorer') { const l = selList(); if (l.length) deleteNow(l); } else if (S.xsel) deleteNow([itemByPath(S.xsel)]); }
+  if (e.key === 'Delete') { const act = e.shiftKey ? 'perm' : 'bin'; if (S.tool === 'explorer') { const l = selList(); if (l.length) deleteNow(l, act); } else if (S.xsel) deleteNow([itemByPath(S.xsel)], act); else if (S.tray.length) reviewWith(act); }
 });

@@ -286,3 +286,11 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
   .side { padding: 16px 10px; } .nv { padding: 9px 10px; font-size: 13px; }
   #upd { width: 330px; }
 }
+
+/* delete straight from a selection */
+.delrow { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.delrow .big { padding: 11px 8px; font-size: 13px; }
+.big.ghost.danger { color: #c0392b; background: #fff1f1; }
+.pbtn.ghostp { background: #fff; color: var(--accent); box-shadow: 0 6px 14px -10px rgba(110,80,210,.6); }
+.delb { padding: 8px 13px; border-radius: 12px; background: #fff; color: var(--ink); font-weight: 700; font-size: 12.5px; box-shadow: 0 6px 14px -10px rgba(110,80,210,.6); flex: none; margin-left: 8px; }
+.delb.perm { color: #c0392b; background: #fff1f1; }

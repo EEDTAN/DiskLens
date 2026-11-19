@@ -134,7 +134,8 @@ File besar (50 MB ke atas) yang tidak berubah selama 6, 12, 24, atau 36 bulan.
 |---|---|
 | `Enter` / klik dua kali | Buka folder, pratinjau foto atau video, buka file lain |
 | `Spasi` | Pratinjau foto atau video yang dipilih |
-| `Delete` | Masukkan pilihan ke keranjang dan buka pemeriksaan |
+| `Delete` | Periksa pilihan dengan **Recycle Bin** terpilih |
+| `Shift` + `Delete` | Periksa pilihan dengan **Hapus permanen** terpilih |
 | `Backspace`, `Alt` + `↑` | Naik satu folder |
 | `Alt` + `←` / `→` | Mundur / maju |
 | `↑` `↓`, `Shift` + `↑` `↓` | Pindah atau perluas pilihan |

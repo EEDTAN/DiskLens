@@ -385,7 +385,7 @@
   "ex.selectAll": "Pilih semua",
   "ex.selectNone": "Batal pilih semua",
   "tray.addAll": "Tambah semua ke keranjang",
-  "tray.collectAll": "Kumpulkan semua ({n} · {size})",
+  "tray.collectAll": "Pilih semua ({n} · {size})",
   "upd.title": "Pembaruan",
   "upd.current": "Versi {v}",
   "upd.check": "Cek pembaruan",
@@ -403,5 +403,7 @@
   "upd.portableNote": "Versi portable tidak bisa memperbarui dirinya sendiri. Unduh file baru dari halaman rilis lalu ganti file yang lama.",
   "upd.devNote": "Pembaruan mati saat DiskLens dijalankan dari kode sumber.",
   "upd.error": "Tidak bisa mengecek pembaruan ({e}).",
-  "upd.auto": "Cek pembaruan setiap DiskLens dibuka"
+  "upd.auto": "Cek pembaruan setiap DiskLens dibuka",
+  "ctx.deleteBin": "Recycle Bin…",
+  "ctx.deletePerm": "Hapus permanen…"
 }
