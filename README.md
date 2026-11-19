@@ -26,6 +26,8 @@ You should not need to ask anyone (or any AI) whether a folder is safe to remove
 
 Windows 10 and 11, 64-bit. All versions are on the [Releases](https://github.com/EEDTAN/DiskLens/releases) page.
 
+**Updates.** From version 0.3.0 the installed app checks GitHub for a new version when it starts. When one is out, a small card offers **Update now**; the download installs when you choose **Restart and install**, and your settings and history stay. You can turn the check off or run it yourself in **Settings → Updates**. The portable version cannot replace itself, so it only tells you a new version exists and opens the download page. Coming from 0.2.x? Install 0.3.0 once by hand; after that it updates itself.
+
 <details>
 <summary>Windows says "Windows protected your PC"</summary>
 

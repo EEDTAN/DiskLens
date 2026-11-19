@@ -1,6 +1,6 @@
 {
   "name": "disklens",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Disk space analyzer with a File Explorer feel. See what is big, and learn what happens before you delete it.",
   "main": "main.js",
   "scripts": {
@@ -38,16 +38,17 @@
       "buildResources": "build"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "scanner.js",
-      "dups.js",
-      "rules.js",
-      "ops.js",
-      "src/**/*",
+      "LICENSE",
       "build/icon.png",
+      "dups.js",
+      "main.js",
+      "ops.js",
       "package.json",
-      "LICENSE"
+      "preload.js",
+      "rules.js",
+      "scanner.js",
+      "src/**/*",
+      "updater.js"
     ],
     "win": {
       "target": [
@@ -76,6 +77,17 @@
     },
     "portable": {
       "artifactName": "DiskLens-Portable.exe"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "EEDTAN",
+        "repo": "DiskLens",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

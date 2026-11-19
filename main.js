@@ -24,7 +24,10 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  require('./updater').init(d => { if (win && !win.isDestroyed()) win.webContents.send('update:state', d); });
+});
 app.on('window-all-closed', () => { if (worker) worker.terminate(); app.quit(); });
 
 /* ---------- settings ---------- */

@@ -274,6 +274,7 @@ function settingsHTML() {
   return shell(`<div class="setg"><div class="ovh"><button class="backb" data-act="back2" title="${esc(t('close'))}">‹</button><div><h1>${esc(t('settings.title'))}</h1></div></div>
   <div class="card2"><h3>${esc(t('settings.language'))}</h3><p class="hint">${esc(t('settings.languageHint'))}</p><div class="lang-grid">${codes.map(c => `<button class="lbtn ${c === S.lang ? 'on' : ''}" data-lang="${esc(c)}"><b>${esc(S.langs[c]._name || c)}</b><small>${esc(c)}</small></button>`).join('')}</div></div>
   <div class="card2"><h3>${esc(t('settings.history'))}</h3>${S.history.length ? S.history.slice(0, 12).map(h => `<div class="hist"><span>${esc(fdate(h.at))}</span><b>${esc(t('hist.' + h.action, { n: h.n }))}</b><em>${esc(F(h.bytes))}</em></div>`).join('') : `<p class="hint">${esc(t('settings.noHistory'))}</p>`}</div>
+  ${updateCard()}
   <div class="card2"><h3>${esc(t('settings.about'))}</h3><div class="aboutrow"><span class="lgo xl">${LOGO}</span><div><b>DiskLens</b><small>${esc(t('settings.version'))} ${esc(S.version)} · ${esc(t('settings.license'))}</small></div></div>
   <p class="hint">${esc(t('settings.privacy'))}</p><p class="hint">${esc(t('settings.inspired'))} <button class="lnk" data-ext="https://github.com/adileo/squirreldisk">SquirrelDisk</button></p></div></div>`);
 }

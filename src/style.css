@@ -252,3 +252,37 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
 .selall { padding: 7px 14px; border-radius: 12px; background: #fff; color: var(--accent); font-weight: 700; font-size: 12.5px; box-shadow: 0 6px 14px -10px rgba(110,80,210,.6); flex: none; } .selall:hover { background: #f3efff; }
 .pbtn.sm { padding: 8px 14px; font-size: 12.5px; flex: none; }
 .tb2.inl { margin: 0 0 2px; }
+
+/* update card */
+#upd { position: fixed; right: 24px; bottom: 24px; z-index: 35; width: 370px; background: #fff; border-radius: 22px; box-shadow: 0 24px 60px -18px rgba(60,30,160,.55), 0 0 0 1px rgba(124,77,255,.12); padding: 16px 18px; display: none; gap: 14px; align-items: flex-start; }
+#upd.show { display: flex; animation: cmin .2s; } #upd .lgo { width: 40px; height: 40px; } #upd .ut { flex: 1; min-width: 0; } #upd b { display: block; font-size: 14.5px; } #upd small { display: block; color: var(--mute); font-size: 12.5px; line-height: 1.5; margin-top: 3px; }
+#upd .ub { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; } #upd .go, #upd .cancel, .updrow .go { padding: 10px 16px; font-size: 13px; border-radius: 13px; width: auto; height: auto; } #upd .mb { margin-top: 10px; }
+.updrow { display: flex; align-items: center; gap: 14px; } .updrow b { font-size: 15px; } .updrow small { display: block; color: var(--mute); font-size: 13px; margin-top: 2px; } .card2 .mb { margin-top: 12px; }
+
+/* never glued to the bottom edge; scroll instead of cropping in small windows */
+.shell { overflow-y: auto; padding-bottom: 28px; }
+.shell > .scanbox, .shell > .ovgrid, .shell > .acts, .shell > .ovh, .shell > .ovh2 { flex: none; }
+.scanbox { margin: auto; }
+@media (max-height: 880px) {
+  .scanbox { padding: 22px 34px; border-radius: 36px; }
+  .ringw, .ringw svg { width: 128px; height: 128px; } .ringw { margin-bottom: 8px; } .ringw .pct { font-size: 30px; }
+  .scanbox h2 { font-size: 22px; } .path { margin: 4px 0 12px; } .stats { margin-bottom: 12px; } .stats div { padding: 10px 8px; } .stats b { font-size: 19px; }
+  .live { margin-bottom: 10px; } .live h4 { margin-bottom: 6px; } .lr { margin-bottom: 4px; } .ro { margin: 0 0 10px; }
+  .hero2 { padding: 28px 32px; } .hero2 h1 { font-size: 30px; } .hero2 p { margin-bottom: 18px; } .hero2 svg { width: 180px; }
+  .safe .n { font-size: 38px; } .ac { padding: 16px; } .card2 { padding: 18px 22px; } .ovh h1 { font-size: 26px; }
+  .tray { min-height: 82px; }
+}
+@media (max-height: 760px) { .live .lr:nth-child(n+4) { display: none; } .ac small { display: none; } }
+
+/* narrow windows: keep names readable */
+@media (max-width: 1360px) {
+  .work { grid-template-columns: 196px minmax(0, 1fr) 300px; gap: 12px 14px; }
+  .rw { grid-template-columns: 40px minmax(0, 1fr) 76px 46px 28px; gap: 10px; }
+  .rw.an { grid-template-columns: 40px minmax(0, 1fr) 80px 28px; }
+  .rw .bar, .rw .dt, .rw.hd > :nth-child(3), .rw.hd > :nth-child(6) { display: none; }
+  .sch { width: 160px; }
+  .tray .empty span { display: none; }
+  .hero { padding: 22px 22px 60px; } .hero .sz { font-size: 34px; } .det { margin: -40px 14px 0; }
+  .side { padding: 16px 10px; } .nv { padding: 9px 10px; font-size: 13px; }
+  #upd { width: 330px; }
+}

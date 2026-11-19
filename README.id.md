@@ -26,6 +26,8 @@ Kamu tidak perlu lagi bertanya ke orang lain (atau ke AI) apakah sebuah folder a
 
 Windows 10 dan 11, 64-bit. Semua versi ada di halaman [Releases](https://github.com/EEDTAN/DiskLens/releases).
 
+**Pembaruan.** Mulai versi 0.3.0, app yang terpasang mengecek GitHub setiap dibuka. Kalau ada versi baru, muncul kartu kecil dengan tombol **Perbarui sekarang**; hasil unduhan dipasang saat kamu memilih **Mulai ulang dan pasang**, dan pengaturan serta riwayatmu tetap ada. Pengecekan bisa dimatikan atau dijalankan manual di **Pengaturan → Pembaruan**. Versi portable tidak bisa mengganti dirinya sendiri, jadi hanya memberi tahu ada versi baru dan membuka halaman unduhan. Masih memakai 0.2.x? Pasang 0.3.0 sekali secara manual; setelah itu app memperbarui dirinya sendiri.
+
 <details>
 <summary>Windows menampilkan "Windows protected your PC"</summary>
 

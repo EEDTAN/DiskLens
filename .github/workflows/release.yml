@@ -29,4 +29,6 @@ jobs:
           body_path: .github/release-notes.md
           files: |
             dist/DiskLens-Setup.exe
+            dist/DiskLens-Setup.exe.blockmap
+            dist/latest.yml
             dist/DiskLens-Portable.exe
