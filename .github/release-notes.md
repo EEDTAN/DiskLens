@@ -7,6 +7,14 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.6
+
+- **Analysis is a plain list again**, biggest first. Each row shows where the item lives (📂 its folder). Long paths keep the drive and the last folders. "What is this" and "if deleted" stay in the side panel.
+
+## Yang baru di 0.3.6
+
+- **Analisis kembali jadi daftar langsung**, dari yang terbesar. Tiap baris menampilkan lokasinya (📂 folder asalnya). Path yang panjang tetap menampilkan huruf drive dan folder terakhirnya. "Apa ini" dan "kalau dihapus" tetap ada di panel samping.
+
 ## What is new in 0.3.5
 
 - **Double-click opens and closes a folder level** in Explorer's list, Analysis and Old files, instead of going into the folder. Enter or right-click → Open still goes into it.

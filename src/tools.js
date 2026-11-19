@@ -159,12 +159,21 @@ function treeHTML(list, total, subOf) {
   };
   return body(top, 0);
 }
+// Analysis is a flat list: each row says where the item lives. Long paths keep the drive and the last folders.
+function shortPath(p, max = 64) {
+  if (p.length <= max) return p;
+  const parts = p.split(/[\\/]+/), head = parts[0] + '\\';
+  let tail = parts[parts.length - 1];
+  for (let i = parts.length - 2; i > 0 && head.length + tail.length + parts[i].length + 3 <= max; i--) tail = parts[i] + '\\' + tail;
+  return head + '…\\' + tail;
+}
+const locLine = x => '📂 ' + shortPath(parentOf(x.path)) + (x.contents ? ' · ' + t('an.contentsOnly') : '');
 function analysisHTML() {
   if (!S.an.items) return `<div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
   const all = S.an.items.filter(x => !gone(x.path)), by = k => all.filter(x => x.risk === k), list = by(S.an.tab), tot = list.reduce((a, x) => a + x.size, 0);
   const tabs = ['safe', 'caution', 'danger'].map(k => { const l = by(k); return `<button class="at ${S.an.tab === k ? 'on' : ''}" data-antab="${k}" style="--c:${RC[k]}"><i></i><b>${esc(t('risk.' + k))}</b><span>${esc(F(l.reduce((a, x) => a + x.size, 0)))}</span><small>${esc(t('ex.items', { n: N(l.length) }))}</small></button>`; }).join('');
   const shown = list.slice(0, 400);
-  return `<div class="ats">${tabs}</div>${pickable(shown).length ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? treeHTML(shown, tot) : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
+  return `<div class="ats">${tabs}</div>${pickable(shown).length ? `<div class="tb2 inl"><span class="info">${esc(t('ex.items', { n: N(list.length) }))} · ${esc(F(tot))}</span><span class="sp"></span>${collectAllBar(shown)}</div>` : ''}<div class="exp">${shown.length ? shown.map(x => rowX(x, tot, locLine(x))).join('') : `<div class="empty2">${esc(t('an.none'))}</div>`}</div>`;
 }
 function riskPanel(it) {
   if (!it) {
