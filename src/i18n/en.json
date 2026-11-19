@@ -164,7 +164,7 @@
   "tray.remove": "Take out",
   "tray.empty": "Drag files or folders here, or press +. Collect first, clean up in one go.",
   "tray.clear": "Clear",
-  "tray.next": "Review",
+  "tray.next": "Delete",
   "tray.blocked": "{n} items skipped: system items or already inside a folder in the collector.",
   "tray.blocked.one": "1 item skipped: a system item or already inside a folder in the collector.",
   "tray.locked": "Protected: DiskLens will not delete this",
@@ -412,6 +412,6 @@
   "upd.devNote": "Updates are off when DiskLens runs from source.",
   "upd.error": "Could not check for updates ({e}).",
   "upd.auto": "Check for updates when DiskLens starts",
-  "ctx.deleteBin": "Recycle Bin…",
-  "ctx.deletePerm": "Delete permanently…"
+  "confirm.how": "What should happen to them?",
+  "confirm.what": "Items ({n})"
 }

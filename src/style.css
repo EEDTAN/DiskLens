@@ -287,10 +287,12 @@ main { grid-column: 1; min-height: 0; display: flex; flex-direction: column; gap
   #upd { width: 330px; }
 }
 
-/* delete straight from a selection */
-.delrow { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.delrow .big { padding: 11px 8px; font-size: 13px; }
-.big.ghost.danger { color: #c0392b; background: #fff1f1; }
+/* review window: the choice sits above the list, so it is always visible */
+.md .mact { flex: none; padding: 4px 28px 10px; border-bottom: 1px solid #eee9fb; }
+.md .mact .opts { margin: 4px 0 8px; }
+.md .mact .mvp, .md .mact .permp { margin: 0 0 4px; }
+.md .mb { min-height: 120px; }
+.mlab { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); margin: 8px 0 8px; }
 .pbtn.ghostp { background: #fff; color: var(--accent); box-shadow: 0 6px 14px -10px rgba(110,80,210,.6); }
-.delb { padding: 8px 13px; border-radius: 12px; background: #fff; color: var(--ink); font-weight: 700; font-size: 12.5px; box-shadow: 0 6px 14px -10px rgba(110,80,210,.6); flex: none; margin-left: 8px; }
-.delb.perm { color: #c0392b; background: #fff1f1; }
+.go.danger { background: linear-gradient(135deg, #ff6b6b, #e0453b); box-shadow: 0 12px 18px -8px #e0453b; color: #fff; }
+.go.danger:disabled { background: #e6e3f2; color: #a7a3c0; box-shadow: none; }

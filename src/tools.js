@@ -40,7 +40,7 @@ function trayHTML() {
   const tot = S.tray.reduce((a, x) => a + x.size, 0);
   return `<div class="tray" id="tray"><div class="tt"><b>${esc(t('tray.title'))}</b><div class="n">${esc(F(tot))}</div><small>${esc(t('tray.count', { n: S.tray.length }))}</small></div>
   <div class="items">${S.tray.length ? S.tray.map(x => `<div class="tc" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div><b title="${esc(x.path)}">${esc(x.name)}</b><small>${esc(F(x.size))}</small></div><button class="x" data-trm="${esc(x.path)}" title="${esc(t('tray.remove'))}">✕</button></div>`).join('') : `<div class="empty"><i>⤓</i><span>${esc(t('tray.empty'))}</span></div>`}</div>
-  ${S.tray.length ? `<button class="clr" data-act2="trayclear">${esc(t('tray.clear'))}</button>` : ''}<button class="go" id="go" ${S.tray.length ? '' : 'disabled'} style="width:auto;height:auto">${esc(t('tray.next'))} ›</button></div>`;
+  ${S.tray.length ? `<button class="clr" data-act2="trayclear">${esc(t('tray.clear'))}</button>` : ''}<button class="go danger" id="go" ${S.tray.length ? '' : 'disabled'} style="width:auto;height:auto">🗑 ${esc(t('tray.next'))}</button></div>`;
 }
 function wireTray() {
   const tr = $('tray'); if (!tr) return;
@@ -90,10 +90,10 @@ function modalHTML() {
     <div class="typed">${esc(t('confirm.type'))} <b>${esc(t('confirm.word'))}</b> <input id="hp" value="${esc(o.word)}" placeholder="${esc(t('confirm.word'))}" autocomplete="off"></div></div>`;
   const label = o.action === 'perm' ? t('confirm.runPerm') : o.action === 'move' ? t('confirm.runMove') : t('confirm.runBin');
   return `<div class="ov"><div class="md"><div class="mh"><h2>${esc(t('confirm.title'))}</h2><p>${esc(t('confirm.sub', { n: S.tray.length, size: F(tot) }))}</p></div>
-  <div class="mb">${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(ruleText(x.rule, 'del'))}</p>${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}
-  <div class="opts"><button class="op ${o.action === 'bin' ? 'on' : ''}" data-opact="bin"><b>🗑 ${esc(t('confirm.bin'))}</b><small>${esc(t('confirm.binDesc'))}</small></button><button class="op ${o.action === 'move' ? 'on' : ''}" data-opact="move"><b>📦 ${esc(t('confirm.move'))}</b><small>${esc(t('confirm.moveDesc'))}</small></button><button class="op ${o.action === 'perm' ? 'on' : ''}" data-opact="perm"><b>⚠ ${esc(t('confirm.perm'))}</b><small>${esc(t('confirm.permDesc'))}</small></button></div>
+  <div class="mact"><h4 class="mlab">${esc(t('confirm.how'))}</h4><div class="opts"><button class="op ${o.action === 'bin' ? 'on' : ''}" data-opact="bin"><b>🗑 ${esc(t('confirm.bin'))}</b><small>${esc(t('confirm.binDesc'))}</small></button><button class="op ${o.action === 'move' ? 'on' : ''}" data-opact="move"><b>📦 ${esc(t('confirm.move'))}</b><small>${esc(t('confirm.moveDesc'))}</small></button><button class="op ${o.action === 'perm' ? 'on' : ''}" data-opact="perm"><b>⚠ ${esc(t('confirm.perm'))}</b><small>${esc(t('confirm.permDesc'))}</small></button></div>
   ${o.action === 'move' ? move : o.action === 'perm' ? perm : ''}</div>
-  <div class="mf"><div class="tot">${esc(t('confirm.total'))}<b>${esc(F(tot))}</b></div><span class="sp"></span><button class="cancel" data-act2="opclose">${esc(t('scan.cancel'))}</button><button class="go" id="run" ${canRun() ? '' : 'disabled'} style="width:auto;height:auto">${esc(label)}</button></div></div></div>`;
+  <div class="mb"><h4 class="mlab">${esc(t('confirm.what', { n: S.tray.length }))}</h4>${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(ruleText(x.rule, 'del'))}</p>${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}</div>
+  <div class="mf"><div class="tot">${esc(t('confirm.total'))}<b>${esc(F(tot))}</b></div><span class="sp"></span><button class="cancel" data-act2="opclose">${esc(t('scan.cancel'))}</button><button class="go ${o.action === 'move' ? '' : 'danger'}" id="run" ${canRun() ? '' : 'disabled'} style="width:auto;height:auto">${esc(label)}</button></div></div></div>`;
 }
 api.onOpProgress(d => {
   if (S.modal !== 'prog') return; S.op.prog = d;
@@ -196,13 +196,12 @@ function toolTop() {
 const pickable = list => list.filter(it => it.risk !== 'danger' && !it.rest);
 const addable = list => pickable(list).filter(it => !inTray(it.path));
 function collectAllBar(list) {
-  const all = pickable(list), l = addable(list), picked = all.length - l.length;
+  const all = pickable(list), l = addable(list);
   if (!all.length) return '';
   const toggle = l.length
     ? `<button class="pbtn sm" data-act2="collectall">☑ ${esc(t('tray.collectAll', { n: N(l.length), size: F(l.reduce((a, v) => a + v.size, 0)) }))}</button>`
     : `<button class="pbtn sm ghostp" data-act2="uncollectall">☐ ${esc(t('ex.selectNone'))}</button>`;
-  const del = picked ? `<button class="delb" data-act2="revbin" title="Delete">🗑 ${esc(t('ctx.deleteBin'))}</button><button class="delb perm" data-act2="revperm" title="Shift+Delete">⚠ ${esc(t('ctx.deletePerm'))}</button>` : '';
-  return toggle + del;
+  return toggle;
 }
 const currentList = () => S.tool === 'analysis' ? (S.an.items || []).filter(v => v.risk === S.an.tab && !gone(v.path)).slice(0, 400) : S.tool === 'old' ? (S.old.items || []).filter(v => !gone(v.path)).slice(0, 400) : [];
 const toolMain = () => S.tool === 'analysis' ? analysisHTML() : S.tool === 'dups' ? dupsHTML() : oldHTML();
@@ -212,7 +211,7 @@ function toolCtx(ev) {
   const it = itemByPath(row.dataset.p); if (!it) return;
   S.xsel = it.path; document.querySelectorAll('.xr').forEach(x => x.classList.toggle('sel', x.dataset.p === it.path)); $('panel').innerHTML = toolPanel(); applyPreviewThumbs();
   const L = [];
-  if (it.risk !== 'danger' && !it.rest) L.push({ t: t('tray.add'), ic: '🧺', f: () => addTray([it]) }, { t: t('ctx.deleteBin'), ic: '🗑', k: 'Del', f: () => deleteNow([it], 'bin') }, { t: t('ctx.deletePerm'), ic: '⚠', k: 'Shift+Del', f: () => deleteNow([it], 'perm') }, { sep: true });
+  if (it.risk !== 'danger' && !it.rest) L.push({ t: t('tray.add'), ic: '🧺', f: () => addTray([it]) }, { t: t('ctx.delete'), ic: '🗑', k: 'Del', f: () => deleteNow([it]) }, { sep: true });
   L.push({ t: t('an.openLocation'), ic: '📂', f: () => reveal(it.path) }, { t: t('ctx.show'), ic: '🗂', f: () => api.show(it.path) }, { t: t('ctx.copyPath'), ic: '📋', f: () => copyPaths([it]) });
   if (!it.dir) L.push({ t: t('ctx.openWith'), ic: '▶', f: () => api.open(it.path) });
   showCtx(ev.clientX, ev.clientY, L);
@@ -233,7 +232,7 @@ document.addEventListener('click', async ev => {
   if (el = c('[data-dkeep]')) { S.dups.keep[el.dataset.dkeep] = el.dataset.path; S.tray = S.tray.filter(x => !same(x.path, el.dataset.path)); return render(); }
   if (el = c('[data-dcol]')) { const x = dupGroups().find(g => g.gi === +el.dataset.dcol); return x && addTray(dupExtras(x)); }
   if (el = c('[data-omonths]')) { S.old.months = +el.dataset.omonths; S.old.items = null; render(); return loadTool(); }
-  if (el = c('[data-opact]')) { S.op.action = el.dataset.opact; render(); const mb = document.querySelector('.md .mb'); if (mb && S.op.action !== 'bin') mb.scrollTop = mb.scrollHeight; return; }
+  if (el = c('[data-opact]')) { S.op.action = el.dataset.opact; return render(); }
   if (el = c('#go')) return openConfirm();
   if (el = c('#run')) return runOp();
   if (el = c('[data-act2]')) {
@@ -249,8 +248,6 @@ document.addEventListener('click', async ev => {
     if (a === 'dall') return addTray(dupGroups().flatMap(dupExtras));
     if (a === 'collectall') return addTray(addable(currentList()));
     if (a === 'uncollectall') { const l = currentList(); S.tray = S.tray.filter(x => !l.some(v => same(v.path, x.path))); return render(); }
-    if (a === 'revbin') return reviewWith('bin');
-    if (a === 'revperm') return reviewWith('perm');
   }
   if (el = c('.xr[data-p]')) { S.xsel = el.dataset.p; document.querySelectorAll('.xr').forEach(x => x.classList.toggle('sel', x.dataset.p === S.xsel)); $('panel').innerHTML = toolPanel(); applyPreviewThumbs(); }
 });

@@ -94,7 +94,7 @@ Click an item to read **What is this?**, **If you delete it**, and often a **Bet
 
 ### 6. Collect first, clean up in one go
 
-Drag rows into the collector at the bottom, press **+**, select several items and use **Add all to collector**, or press **Collect all** in Analysis and Old files. When you are done, press **Review**. Every item is listed again with what happens if it is deleted, and app data asks for an extra confirmation.
+Drag rows into the collector at the bottom, press **+**, select several items and use **Add all to collector**, or press **Select all** in Analysis and Old files. Then press the red **Delete** button. When you are done, press **Review**. Every item is listed again with what happens if it is deleted, and app data asks for an extra confirmation.
 
 <p align="center"><img src="docs/screenshots/collector.png" alt="Collector with items" width="88%"></p>
 

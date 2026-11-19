@@ -159,7 +159,7 @@
   "tray.remove": "Keluarkan",
   "tray.empty": "Seret file atau folder ke sini, atau tekan +. Kumpulkan dulu, lalu bersihkan sekaligus.",
   "tray.clear": "Kosongkan",
-  "tray.next": "Periksa",
+  "tray.next": "Hapus",
   "tray.blocked": "{n} item dilewati: item sistem atau sudah ada di dalam folder di keranjang.",
   "tray.locked": "Dilindungi: DiskLens tidak akan menghapusnya",
   "tray.restLocked": "Ini sisa isi sebuah folder. Buka foldernya untuk memilih item.",
@@ -404,6 +404,6 @@
   "upd.devNote": "Pembaruan mati saat DiskLens dijalankan dari kode sumber.",
   "upd.error": "Tidak bisa mengecek pembaruan ({e}).",
   "upd.auto": "Cek pembaruan setiap DiskLens dibuka",
-  "ctx.deleteBin": "Recycle Bin…",
-  "ctx.deletePerm": "Hapus permanen…"
+  "confirm.how": "Mau diapakan?",
+  "confirm.what": "Yang akan diproses ({n} item)"
 }

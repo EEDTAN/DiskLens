@@ -7,15 +7,15 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
-## What is new in 0.3.1
+## What is new in 0.3.2
 
-- **Delete straight from a selection**: the selection panel in Explorer has **Recycle Bin…** and **Delete permanently…**. Both open the review with that option already chosen. `Delete` and `Shift` + `Delete` do the same, like in File Explorer.
-- **Select all / Select none** in Analysis and Old files (was "Collect all"), plus Recycle Bin and Delete permanently buttons once items are picked.
+- **Fixed**: with many items, the review window pushed the three choices (Recycle Bin, Move to another drive, Delete permanently) below the list, so only the Recycle Bin button showed. The choices now sit above the list and are always visible.
+- The collector button is now a red **Delete** button. The extra delete buttons added in 0.3.1 are gone; everything goes through this one place. `Delete` still opens it with Recycle Bin chosen, `Shift` + `Delete` with Delete permanently.
 
-## Yang baru di 0.3.1
+## Yang baru di 0.3.2
 
-- **Hapus langsung dari pilihan**: panel pilihan di Penjelajah punya **Recycle Bin…** dan **Hapus permanen…**, yang membuka pemeriksaan dengan pilihan itu sudah terpilih. `Delete` dan `Shift` + `Delete` juga begitu, seperti di File Explorer.
-- **Pilih semua / Batal pilih semua** di Analisis dan File lama, plus tombol Recycle Bin dan Hapus permanen setelah item dipilih.
+- **Diperbaiki**: kalau item banyak, tiga pilihan (Recycle Bin, Pindah ke drive lain, Hapus permanen) terdorong ke bawah daftar sehingga hanya tombol Recycle Bin yang terlihat. Sekarang pilihannya ada di atas daftar dan selalu terlihat.
+- Tombol di keranjang sekarang tombol merah **Hapus**. Tombol hapus tambahan dari 0.3.1 dihapus, semuanya lewat satu tempat ini. `Delete` tetap membukanya dengan Recycle Bin terpilih, `Shift` + `Delete` dengan Hapus permanen.
 
 ## What is new in 0.3.0
 
