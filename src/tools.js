@@ -9,6 +9,13 @@ Object.assign(S, {
 const RC = { safe: '#34d399', caution: '#fbbf24', danger: '#f87171', unknown: '#a5a1c2' };
 const ASK = new Set(['appdata', 'storeapp', 'programdata', 'pkgcache', 'wsl', 'steamgame', 'steamdl', 'nuget', 'git', 'onedrive']);
 const hasKey = k => !!((S.langs[S.lang] || {})[k] || (S.langs.en || {})[k]);
+// Text for an item: its own explanation (built from location and file type) when it has one, else its rule's text.
+const exText = (it, part) => {
+  const ex = it && it.ex, p = ex && ex[part];
+  if (!p) return part === 'tip' && ex ? '' : ruleText(it && it.rule, part);
+  const one = ([k, v]) => { const vals = {}; for (const [n, x] of Object.entries(v || {})) vals[n] = x && x.t ? t(x.t) : x; return hasKey(k) ? t(k, vals) : ''; };
+  return (part === 'what' ? p.map(one) : [one(p)]).filter(Boolean).join(' ');
+};
 const ruleText = (rule, part) => rule && hasKey('r.' + rule + '.' + part) ? t('r.' + rule + '.' + part) : (part === 'tip' ? '' : t('r.unknown.' + part));
 const riskChip = r => `<span class="chip" style="--c:${RC[r] || RC.unknown}">● ${esc(t('risk.' + (r || 'unknown')))}</span>`;
 const gone = p => [...S.gone].some(g => within(p, g));
@@ -18,8 +25,7 @@ async function loadAnKids(p) {
   const r = await api.list(p), l = remember(r.error ? [] : r.entries);
   const [rk, guards] = await Promise.all([api.classifyMany(l.map(x => [x.path, !!x.dir])), api.guard(l.map(x => x.path))]);
   // Inside a temp or cache folder, unknown items are what the folder is: temp or cache files.
-  const parent = itemByPath(p) || {}, from = parent.contents || parent.inherit ? parent : null;
-  l.forEach((x, i) => { Object.assign(x, rk[i], { lock: guards[i] || null }); if (from && x.risk === 'unknown') Object.assign(x, { rule: from.rule, risk: from.risk, inherit: true }); });
+  l.forEach((x, i) => Object.assign(x, rk[i], { lock: guards[i] || null }));
   anKids.set(p, l);
 }
 async function toggleAn(p) {
@@ -53,7 +59,7 @@ async function addTray(list) {
     if (guards[i] || risks[i].risk === 'danger' || x.rest || x.lock) { locked++; return; }
     if (S.tray.some(y => within(x.path, y.path))) { nested++; return; }
     S.tray = S.tray.filter(y => !within(y.path, x.path));
-    S.tray.push({ path: x.path, name: x.name, size: x.size || 0, dir: !!x.dir, rule: x.inherit ? x.rule : risks[i].rule, risk: x.inherit ? x.risk : risks[i].risk, contents: contents[i] });
+    S.tray.push({ path: x.path, name: x.name, size: x.size || 0, dir: !!x.dir, rule: risks[i].rule, risk: risks[i].risk, ex: risks[i].ex, contents: contents[i] });
   });
   if (locked) toast(t('tray.lockedN', { n: locked }));
   else if (nested) toast(t('tray.nestedN', { n: nested }));
@@ -118,7 +124,7 @@ function modalHTML() {
   return `<div class="ov"><div class="md"><div class="mh"><h2>${esc(t('confirm.title'))}</h2><p>${esc(t('confirm.sub', { n: S.tray.length, size: F(tot) }))}</p></div>
   <div class="mact"><h4 class="mlab">${esc(t('confirm.how'))}</h4><div class="opts"><button class="op ${o.action === 'bin' ? 'on' : ''}" data-opact="bin"><b>🗑 ${esc(t('confirm.bin'))}</b><small>${esc(t('confirm.binDesc'))}</small></button><button class="op ${o.action === 'move' ? 'on' : ''}" data-opact="move"><b>📦 ${esc(t('confirm.move'))}</b><small>${esc(t('confirm.moveDesc'))}</small></button><button class="op ${o.action === 'perm' ? 'on' : ''}" data-opact="perm"><b>⚠ ${esc(t('confirm.perm'))}</b><small>${esc(t('confirm.permDesc'))}</small></button></div>
   ${o.action === 'move' ? move : o.action === 'perm' ? perm : ''}</div>
-  <div class="mb"><h4 class="mlab">${esc(t('confirm.what', { n: S.tray.length }))}</h4>${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(ruleText(x.rule, 'del'))}</p>${x.contents ? `<p class="cnote">🧹 ${esc(t('confirm.contentsNote'))}</p>` : ''}${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}</div>
+  <div class="mb"><h4 class="mlab">${esc(t('confirm.what', { n: S.tray.length }))}</h4>${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(exText(x, 'del'))}</p>${x.contents ? `<p class="cnote">🧹 ${esc(t('confirm.contentsNote'))}</p>` : ''}${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}</div>
   <div class="mf"><div class="tot">${esc(t('confirm.total'))}<b>${esc(F(tot))}</b></div><span class="sp"></span><button class="cancel" data-act2="opclose">${esc(t('scan.cancel'))}</button><button class="go ${o.action === 'move' ? '' : 'danger'}" id="run" ${canRun() ? '' : 'disabled'} style="width:auto;height:auto">${esc(label)}</button></div></div></div>`;
 }
 api.onOpProgress(d => {
@@ -152,7 +158,7 @@ async function loadTool() {
   if (S.tool === 'old' && !S.old.items) { const l = remember(await api.oldFiles(S.old.months)); const rk = await api.classifyMany(l.map(x => [x.path, false])); l.forEach((x, i) => Object.assign(x, rk[i])); S.old.items = l; render(); }
 }
 function rowX(it, total, sub, grad) {
-  const line = sub !== undefined ? sub : (it.contents ? t('an.contentsOnly') + ' · ' : '') + ruleText(it.rule, 'what');
+  const line = sub !== undefined ? sub : (it.contents ? t('an.contentsOnly') + ' · ' : '') + exText(it, 'what');
   const axt = it.dir && S.tool === 'analysis' ? `<span class="xt ${anOpen.has(it.path) ? 'on' : ''}" data-axt="${esc(it.path)}">▸</span>` : '';
   return `<div class="rw an xr ${S.xsel === it.path ? 'sel' : ''}" data-p="${esc(it.path)}" draggable="true" style="${grad || gradOf(it)}" title="${esc(it.path)}">${visual(it, 0, grad)}<div class="nm"><b>${axt}${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</b><small>${esc(line)}</small></div><div class="bar"><i style="width:${Math.max(2, it.size / (total || 1) * 100)}%"></i></div><div class="s">${esc(F(it.size))}</div>${addBtnX(it)}</div>`;
 }
@@ -201,11 +207,13 @@ function riskPanel(it) {
     const k = S.tool;
     return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t(k === 'analysis' ? 'nav.analysis' : k === 'dups' ? 'nav.dups' : 'ov.old'))}</span><h2>${esc(t('panel.pick'))}</h2><small>${esc(t('panel.pickHint.' + k))}</small></div><div class="det"><div class="card"><h4>${esc(t('an.legend'))}</h4>${['safe', 'caution', 'danger'].map(r => `<p class="lg"><i style="background:${RC[r]}"></i><span><b>${esc(t('risk.' + r))}</b> · ${esc(t('risk.' + r + '.desc'))}</span></p>`).join('')}</div></div>`;
   }
-  const tip = ruleText(it.rule, 'tip'), k = kindOf(it);
+  const tip = exText(it, 'tip'), k = kindOf(it);
+  if (/\.(exe|dll|sys|ocx|drv|scr)$/i.test(it.path) && it.ver === undefined) { it.ver = null; api.verinfo(it.path).then(v => { it.ver = v || false; if (S.xsel === it.path) { $('panel').innerHTML = toolPanel(); applyPreviewThumbs(); } }); }
+  const ver = it.ver && it.ver.desc ? (it.ver.company ? t('ex.ver', it.ver) : t('ex.verNoCo', it.ver)) + ' ' : '';
   const letter = it.rule === 'recycle' ? it.path[0].toUpperCase() : null;
   const preview = (k === 'foto' || k === 'video') ? `<div class="card pv"><div class="th pvimg" ${k === 'foto' ? `style="background-image:url('${fileUrl(it.path)}')"` : `data-pv="${esc(it.path)}"`}>${k === 'video' ? '<div class="play"><i></i></div>' : ''}</div></div>` : '';
   return `<div class="hero">${riskChip(it.risk)}<h2>${esc(it.name)}${it.rest ? ' · ' + esc(t('an.rest')) : ''}</h2><div class="sz">${esc(F(it.size))}</div><small>${esc(parentOf(it.path))}${it.mtime ? ' · ' + esc(fdate(it.mtime)) : ''}</small></div>
-  <div class="det">${preview}<div class="card"><h4>${esc(t('an.what'))}</h4><p>${esc(ruleText(it.rule, 'what'))}</p></div><div class="card w" style="--c:${RC[it.risk] || RC.unknown}"><h4>${esc(t('an.ifDeleted'))}</h4><p>${esc(ruleText(it.rule, 'del'))}</p></div>${tip ? `<div class="card tip"><h4>${esc(t('an.tip'))}</h4><p>${esc(tip)}</p></div>` : ''}
+  <div class="det">${preview}<div class="card"><h4>${esc(t('an.what'))}</h4><p>${esc(ver + exText(it, 'what'))}</p></div><div class="card w" style="--c:${RC[it.risk] || RC.unknown}"><h4>${esc(t('an.ifDeleted'))}</h4><p>${esc(exText(it, 'del'))}</p></div>${tip ? `<div class="card tip"><h4>${esc(t('an.tip'))}</h4><p>${esc(tip)}</p></div>` : ''}
   <div>${letter ? `<button class="big" data-empty="${letter}">${esc(S.armed === letter ? t('an.emptyConfirm') : t('an.emptyBin'))}</button>` : (it.risk === 'danger' || it.rest || it.lock ? `<button class="big off">🔒 ${esc(t(it.rest ? 'tray.restLocked' : 'tray.locked'))}</button>` : `<button class="big" data-tadd="${esc(it.path)}">${esc(inTray(it.path) ? t('tray.inTray') : t('tray.add'))}</button>`)}
   <button class="big ghost" data-reveal="${esc(it.path)}">${esc(t('an.openLocation'))}</button><button class="big ghost" data-show="${esc(it.path)}">${esc(t('ctx.show'))}</button></div></div>`;
 }

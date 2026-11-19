@@ -7,6 +7,26 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.9
+
+- **An explanation for every item, not only the ones a rule knows.** DiskLens now builds it from three things Windows already has:
+  - **Where it is**: the nearest folder it recognises. A file in `AppData\Roaming\Spotify` is "data of the app Spotify". A file in `Program Files\Discord` is "part of the program Discord", and so on.
+  - **Windows' list of installed programs** (the same list as Settings → Apps). Programs installed anywhere, for example a game on `D:\`, are recognised by name and maker.
+  - **The file itself**: the type from its extension or from Windows (the "Type" column in File Explorer, with the app that opens it), and for .exe, .dll and .sys files, the name and maker written inside them.
+- Folders with .exe files that Windows has no record of are explained as a portable program or game.
+- Files inside an installed program or inside Windows are now locked like the folder itself. Programs installed only for your account are marked "Check first".
+- Items that nothing explains still say so honestly: DiskLens does not guess.
+
+## Yang baru di 0.3.9
+
+- **Setiap item punya penjelasan, tidak hanya yang dikenal aturan.** DiskLens sekarang menyusunnya dari tiga hal yang sudah dimiliki Windows:
+  - **Lokasinya**: folder terdekat yang dikenali. File di `AppData\Roaming\Spotify` dijelaskan sebagai "data milik aplikasi Spotify". File di `Program Files\Discord` dijelaskan sebagai "bagian dari program Discord", dan seterusnya.
+  - **Daftar program terpasang di Windows** (sama dengan Pengaturan → Aplikasi). Program yang dipasang di mana saja, misalnya game di `D:\`, dikenali nama dan pembuatnya.
+  - **Filenya sendiri**: jenisnya dari ekstensi atau dari Windows (kolom "Type" di File Explorer, beserta aplikasi pembukanya). Untuk file .exe, .dll, dan .sys, nama dan pembuat yang tertulis di dalam file juga dibaca.
+- Folder berisi file .exe yang tidak tercatat di Windows dijelaskan sebagai program atau game portable.
+- File di dalam program terpasang atau di dalam Windows sekarang ikut dikunci seperti foldernya. Program yang dipasang hanya untuk akunmu diberi label "Cek dulu".
+- Item yang tidak bisa dijelaskan tetap ditulis apa adanya: DiskLens tidak menebak.
+
 ## What is new in 0.3.8
 
 - **Open folders in Analysis**: folder items have a ▸. Click it or double-click the row to see what is inside, level by level. Items inside a temp or cache folder are labelled like the folder, and protected ones show a lock.

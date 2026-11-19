@@ -198,10 +198,79 @@ static class FastScan {
     return 0;
   }
 
+  // ---------- what Windows knows: installed programs and file types (read-only) ----------
+  [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+  static extern int AssocQueryStringW(int flags, int what, string assoc, string extra, StringBuilder outp, ref uint len);
+  static string Assoc(int what, string ext) {
+    uint len = 512; var sb = new StringBuilder(512);
+    return AssocQueryStringW(0x400 /* fail for unknown types */, what, "." + ext, null, sb, ref len) == 0 ? sb.ToString().Trim() : "";
+  }
+  // `--types ext...`: the type name and the app that opens it, as File Explorer shows them.
+  static int Types(string[] exts) {
+    var w = new StringWriter(); w.Write('{'); bool first = true;
+    foreach (var e in exts) {
+      string type = Assoc(3 /* friendly doc name */, e), app = Assoc(4 /* friendly app name */, e);
+      if (type == "" && app == "") continue;
+      if (!first) w.Write(','); first = false;
+      Str(w, e); w.Write(":{\"type\":"); Str(w, type); w.Write(",\"app\":"); Str(w, app); w.Write('}');
+    }
+    w.Write('}'); Out(w.ToString()); return 0;
+  }
+  static string DirOf(string s) {
+    if (string.IsNullOrEmpty(s)) return "";
+    s = s.Trim();
+    if (s.StartsWith("\"")) { int e = s.IndexOf('"', 1); if (e < 0) return ""; s = s.Substring(1, e - 1); }
+    else { int c = s.IndexOf(','); if (c > 0) s = s.Substring(0, c); int x = s.ToLowerInvariant().IndexOf(".exe"); if (x > 0) s = s.Substring(0, x + 4); }
+    var l = s.ToLowerInvariant();
+    if (!l.EndsWith(".exe") && !l.EndsWith(".ico")) return "";
+    try { return Path.GetDirectoryName(s) ?? ""; } catch { return ""; }
+  }
+  // `--apps`: every program in Windows' list of installed apps (Settings → Apps), with its folder.
+  static int Apps() {
+    var w = new StringWriter(); w.Write('['); bool first = true;
+    foreach (var hive in new[] { Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryHive.CurrentUser })
+      foreach (var view in new[] { Microsoft.Win32.RegistryView.Registry64, Microsoft.Win32.RegistryView.Registry32 }) {
+        try {
+          using (var b = Microsoft.Win32.RegistryKey.OpenBaseKey(hive, view))
+          using (var u = b.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall")) {
+            if (u == null) continue;
+            foreach (var n in u.GetSubKeyNames()) {
+              try {
+                using (var k = u.OpenSubKey(n)) {
+                  var name = k.GetValue("DisplayName") as string;
+                  if (string.IsNullOrWhiteSpace(name)) continue;
+                  string loc = ((k.GetValue("InstallLocation") as string) ?? "").Trim().Trim('"');
+                  if (loc == "") loc = DirOf(k.GetValue("DisplayIcon") as string);
+                  if (loc == "") loc = DirOf(k.GetValue("UninstallString") as string);
+                  if (loc == "") continue;
+                  if (!first) w.Write(','); first = false;
+                  w.Write("{\"name\":"); Str(w, name.Trim()); w.Write(",\"pub\":"); Str(w, ((k.GetValue("Publisher") as string) ?? "").Trim());
+                  w.Write(",\"loc\":"); Str(w, loc.TrimEnd('\\')); w.Write('}');
+                }
+              } catch { /* unreadable entry */ }
+            }
+          }
+        } catch { /* hive or view not available */ }
+      }
+    w.Write(']'); Out(w.ToString()); return 0;
+  }
+  static void Out(string s) { var o = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)); o.Write(s); o.Flush(); }
+
   [STAThread]
   static int Main(string[] args) {
     if (args.Length < 1) return 2;
     if (args[0] == "--trash") return Trash();
+    if (args[0] == "--apps") return Apps();
+    if (args[0] == "--types") { var ex = new string[args.Length - 1]; Array.Copy(args, 1, ex, 0, ex.Length); return Types(ex); }
+    if (args[0] == "--info") { // description and company written inside a program file
+      try {
+        var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(args[1]);
+        var w = new StringWriter(); w.Write("{\"desc\":"); Str(w, (v.FileDescription ?? "").Trim()); w.Write(",\"company\":"); Str(w, (v.CompanyName ?? "").Trim());
+        w.Write(",\"product\":"); Str(w, (v.ProductName ?? "").Trim()); w.Write("}");
+        var io = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)); io.Write(w.ToString()); io.Flush();
+      } catch { Console.Write("null"); }
+      return 0;
+    }
     Put(0, "mp4 mkv avi mov wmv webm flv m4v mpg mpeg 3gp");
     Put(1, "jpg jpeg png gif webp bmp heic tif tiff raw cr2 nef svg ico psd");
     Put(2, "mp3 wav flac aac ogg m4a wma opus");

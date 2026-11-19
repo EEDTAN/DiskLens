@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   analysis: inv('analysis:run'),
   classifyMany: inv('analysis:classifyMany'),
   guard: inv('ops:guard'),
+  verinfo: inv('fs:verinfo'),
   oldFiles: inv('old:list'),
   dupsStart: inv('dups:start'),
   dupsCancel: inv('dups:cancel'),

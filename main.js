@@ -28,6 +28,8 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
   require('./updater').init(d => { if (win && !win.isDestroyed()) win.webContents.send('update:state', d); });
+  // Windows' list of installed programs, so files of programs installed anywhere (D:\Games...) are recognised.
+  if (fs.existsSync(fastExe)) execFile(fastExe, ['--apps'], { windowsHide: true, timeout: 20000, maxBuffer: 1 << 24 }, (err, out) => { try { if (!err) rules.setApps(JSON.parse(out)); } catch { /* keep going without it */ } });
 });
 app.on('window-all-closed', () => { if (worker) worker.terminate(); app.quit(); });
 
@@ -219,7 +221,32 @@ ipcMain.handle('analysis:run', () => {
       return { ...it, contents, lock: it.rule === 'recycle' ? 'recycle' : rules.protectedReason(it.path, appPaths(), { contents }) }; });
 });
 ipcMain.handle('analysis:classify', (_, p, isDir) => { const r = rules.classify(p, !!isDir); return r ? { rule: r.id, risk: r.risk } : { rule: null, risk: 'unknown' }; });
-ipcMain.handle('analysis:classifyMany', (_, list) => list.map(([p, d]) => { const r = rules.classify(p, !!d); return r ? { rule: r.id, risk: r.risk, contents: !!r.contents } : { rule: null, risk: 'unknown', contents: false }; }));
+// Folders that hold .exe files (portable programs), remembered for the session. Read-only.
+const exeDirs = new Map();
+const hasExe = d => { if (!exeDirs.has(d)) { let v = false; try { v = fs.readdirSync(d, { withFileTypes: true }).some(e => e.isFile() && /\.exe$/i.test(e.name)); } catch { /* unreadable */ } exeDirs.set(d, v); } return exeDirs.get(d); };
+// What Windows calls a file type and which app opens it, asked once per extension.
+const winTypes = {};
+async function typesFor(exts) {
+  const need = exts.filter(e => !(e in winTypes));
+  if (need.length && fs.existsSync(fastExe)) {
+    const r = await new Promise(res => execFile(fastExe, ['--types', ...need], { windowsHide: true, timeout: 8000 }, (err, out) => { try { res(err ? {} : JSON.parse(out)); } catch { res({}); } }));
+    for (const e of need) winTypes[e] = r[e] || null;
+  }
+  return winTypes;
+}
+ipcMain.handle('analysis:classifyMany', async (_, list) => {
+  const extOf = p => ((/\.([a-z0-9]{1,8})$/i.exec(p) || [])[1] || '').toLowerCase();
+  const types = await typesFor([...new Set(list.filter(([p, d]) => !d && extOf(p) && !rules.TYPE_OF[extOf(p)] && !rules.classify(p, false)).map(([p]) => extOf(p)))].slice(0, 200));
+  return list.map(([p, d]) => {
+  const r = rules.classify(p, !!d), ex = rules.explain(p, !!d, { hasExe, types });
+  return { rule: r ? r.id : null, risk: r ? r.risk : ex ? ex.risk : 'unknown', contents: !!(r && r.contents), ex };
+  });
+});
+// Name and maker written inside a program file (.exe, .dll, .sys), read by the helper. Read-only.
+ipcMain.handle('fs:verinfo', (_, p) => new Promise(resolve => {
+  if (!fs.existsSync(fastExe)) return resolve(null);
+  execFile(fastExe, ['--info', p], { windowsHide: true, timeout: 8000 }, (err, out) => { try { resolve(err ? null : JSON.parse(out)); } catch { resolve(null); } });
+}));
 ipcMain.handle('ops:guard', (_, list) => list.map(x => typeof x === 'string' ? rules.protectedReason(x, appPaths()) : rules.protectedReason(x.path, appPaths(), { contents: !!x.contents })));
 
 /* ---------- old files: big files not changed for a long time ---------- */
