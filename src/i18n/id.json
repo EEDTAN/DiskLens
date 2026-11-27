@@ -499,5 +499,7 @@
   "types.capped": "Yang tampil {n} terbesar.",
   "types.none": "Tidak ada file jenis ini.",
   "panel.pickHint.types": "Klik file untuk melihat keterangannya.",
-  "types.size": "Ukuran gambar"
+  "types.size": "Ukuran gambar",
+  "viewer.fromPhone": "Memuat dari HP…",
+  "viewer.phoneFail": "File ini tidak bisa dimuat dari HP. Apakah HP masih tersambung?"
 }

@@ -211,6 +211,33 @@ ipcMain.handle('fs:stat', async (_, p) => {
   try { const st = await fs.promises.lstat(p); return { size: st.size, mtime: st.mtimeMs, birth: st.birthtimeMs, dir: st.isDirectory() }; } catch { return null; }
 });
 
+/* ---------- phone previews ---------- */
+// A phone file has no disk path, so Windows cannot show it. It is copied once into a temp folder (wiped on start and quit),
+// through one fastscan.exe --mtp-ops get process per phone that stays open and answers path by path.
+const PREVIEW_DIR = path.join(app.getPath('temp'), 'DiskLens-phone');
+const wipePreviews = () => { try { fs.rmSync(PREVIEW_DIR, { recursive: true, force: true }); } catch { /* in use */ } };
+wipePreviews(); app.on('will-quit', wipePreviews);
+const phoneCopies = new Map(), copiers = new Map(); // path -> Promise<local path|null>, scan root -> process
+function phoneLocal(p) {
+  if (phoneCopies.has(p)) return phoneCopies.get(p);
+  const s = phoneScan(p), ph = s && phones.get(norm(s.root)); if (!ph) return Promise.resolve(null);
+  let c = copiers.get(s.root);
+  if (!c || c.dead) {
+    const dir = path.join(PREVIEW_DIR, String(copiers.size)); fs.mkdirSync(dir, { recursive: true });
+    const child = require('child_process').spawn(fastExe, ['--mtp-ops', ph.dev, ph.id, s.root, 'get', dir], { windowsHide: true });
+    c = { child, wait: [], buf: '', dead: false };
+    child.stdout.on('data', d => { c.buf += d; const lines = c.buf.split('\n'); c.buf = lines.pop(); for (const l of lines) if (l.trim()) { let r = {}; try { r = JSON.parse(l); } catch { /* bad line */ } const w = c.wait.shift(); if (w) w(r.ok ? r.target : null); } });
+    child.stderr.on('data', () => {}); // copy progress, not needed here
+    child.on('close', () => { c.dead = true; c.wait.splice(0).forEach(w => w(null)); });
+    child.on('error', () => { c.dead = true; c.wait.splice(0).forEach(w => w(null)); });
+    copiers.set(s.root, c);
+  }
+  const pr = new Promise(res => { c.wait.push(res); c.child.stdin.write(p + '\n'); });
+  phoneCopies.set(p, pr); pr.then(l => { if (!l) phoneCopies.delete(p); });
+  return pr;
+}
+ipcMain.handle('phone:local', (_, p) => phoneLocal(p));
+
 /* ---------- thumbnails from Windows, like Explorer ---------- */
 const thumbCache = new Map();
 let busy = 0; const queue = [];
@@ -220,7 +247,10 @@ ipcMain.handle('fs:thumb', (_, p) => new Promise(resolve => {
   queue.push(async () => {
     let url = null;
     try {
-      let img = nativeImage.createThumbnailFromPath ? await nativeImage.createThumbnailFromPath(p, { width: 480, height: 330 }) : nativeImage.createFromPath(p).resize({ width: 480 });
+      // Phone photos/videos up to 60 MB are copied for their thumbnail; bigger ones would take too long just for a small picture.
+      const src = phoneScan(p) ? (phoneSize(p) <= 60 * 1048576 ? await phoneLocal(p) : null) : p;
+      if (!src) throw new Error('no copy');
+      let img = nativeImage.createThumbnailFromPath ? await nativeImage.createThumbnailFromPath(src, { width: 480, height: 330 }) : nativeImage.createFromPath(src).resize({ width: 480 });
       if (img && !img.isEmpty()) url = 'data:image/jpeg;base64,' + img.toJPEG(78).toString('base64');
     } catch { /* no thumbnail for this file */ }
     thumbCache.set(p, url);

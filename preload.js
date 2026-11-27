@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   stat: inv('fs:stat'),
   size: inv('fs:size'),
   thumb: inv('fs:thumb'),
+  phoneLocal: inv('phone:local'),
   open: inv('shell:open'),
   show: inv('shell:show'),
   external: inv('shell:external'),

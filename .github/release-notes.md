@@ -7,6 +7,16 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.13
+
+- **Phone previews.** Photos and videos on a phone plugged in by USB now show thumbnails and open in the viewer, in File types, Explorer and Analysis. DiskLens first copies the file into a temporary folder on this PC, so opening one takes a few seconds ("Loading from the phone…"). That folder is emptied when DiskLens closes.
+- Videos on the phone bigger than 60 MB get no thumbnail (it would take too long). They still open with a double-click.
+
+## Yang baru di 0.3.13
+
+- **Pratinjau file HP.** Foto dan video di HP yang dicolok lewat USB sekarang punya gambar kecil dan bisa dibuka di penampil, di Jenis file, Explorer, dan Analisis. DiskLens menyalin filenya dulu ke folder sementara di laptop, jadi membukanya butuh beberapa detik ("Memuat dari HP…"). Folder itu dikosongkan saat DiskLens ditutup.
+- Video di HP yang lebih dari 60 MB tidak dibuatkan gambar kecil karena terlalu lama. Video itu tetap bisa dibuka dengan klik dua kali.
+
 ## What is new in 0.3.12
 
 - **File types.** A new tool with one tab per type: Video, Photos, Audio, Documents and Archives. Each tab lists every file of that type (64 KB and up) from the whole scan, biggest first, with where it lives. Windows and program folders are left out.

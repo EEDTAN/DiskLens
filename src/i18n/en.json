@@ -509,5 +509,7 @@
   "types.capped": "Showing the biggest {n}.",
   "types.none": "No files of this type.",
   "panel.pickHint.types": "Click a file to see more about it.",
-  "types.size": "Thumbnail size"
+  "types.size": "Thumbnail size",
+  "viewer.fromPhone": "Loading from the phone…",
+  "viewer.phoneFail": "Could not load this file from the phone. Is it still plugged in?"
 }

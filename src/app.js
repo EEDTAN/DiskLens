@@ -254,7 +254,7 @@ function panelHTML() {
   const size = e ? e.size : folderTotal(), path = e ? e.path : S.cur;
   const files = e ? e.files : (S.info && S.info.f), dirs = e ? e.dirs : (S.info && S.info.d);
   const top3 = !e ? S.entries.slice().sort((a, b) => (b.size || 0) - (a.size || 0)).slice(0, 3).filter(x => x.size) : [];
-  const preview = e && (k === 'foto' || k === 'video') ? `<div class="card pv"><div class="th pvimg" ${k === 'foto' ? `style="background-image:url('${fileUrl(e.path)}')"` : `data-pv="${esc(e.path)}"`}>${k === 'video' ? '<div class="play"><i></i></div>' : ''}</div></div>` : '';
+  const preview = e && (k === 'foto' || k === 'video') ? `<div class="card pv"><div class="th pvimg" ${k === 'foto' && !onPhone(e.path) ? `style="background-image:url('${fileUrl(e.path)}')"` : `data-pv="${esc(e.path)}"`}>${k === 'video' ? '<div class="play"><i></i></div>' : ''}</div></div>` : '';
   return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t('kind.' + k))}</span><h2>${esc(name)}</h2><div class="sz">${esc(F(size))}</div><small>${esc(e ? parentOf(e.path) + ' · ' + fdate(e.mtime) : path)}</small></div>
   <div class="det">${preview}${top3.length ? `<div class="card"><h4>${esc(t('panel.biggest'))}</h4>${top3.map(x => `<div class="mini" style="${gradOf(x)}"><span>${esc(x.name)}</span><span class="b"><i style="width:${x.size / (size || 1) * 100}%"></i></span><span class="v">${esc(F(x.size))}</span></div>`).join('')}</div>` : ''}
   <div class="card"><h4>${esc(t('ctx.props'))}</h4>${kv(t('panel.type'), esc(t('kind.' + k)))}${kv(t('panel.location'), esc(e ? parentOf(e.path) : path))}${kv(t('panel.size'), esc(F(size)))}${files != null ? kv(t('panel.contains'), esc(t('panel.containsVal', { f: t('unit.files', { n: N(files) }), d: t('unit.folders', { n: N(dirs || 0) }) }))) : ''}${e ? kv(t('panel.modified'), esc(fdate(e.mtime))) : ''}</div>
@@ -269,18 +269,29 @@ function refreshSel() {
 function applyPreviewThumbs() { document.querySelectorAll('[data-pv]').forEach(el => api.thumb(el.dataset.pv).then(u => { if (u && el.isConnected) el.style.backgroundImage = `url("${u}")`; })); }
 
 /* ---------- viewer & properties ---------- */
-function openViewer(e, from = S.view) {
+// Phone files have no disk path: the main process copies them to a temp folder first (e.local).
+async function withLocal(e) {
+  if (e.local || !onPhone(e.path)) return e;
+  toast(t('viewer.fromPhone'));
+  e.local = await api.phoneLocal(e.path);
+  if (!e.local) toast(t('viewer.phoneFail'));
+  return e;
+}
+async function openViewer(e, from = S.view) {
   const list = from.filter(x => ['foto', 'video'].includes(kindOf(x))); if (!list.length) return;
-  S.viewer = { list, i: Math.max(0, list.findIndex(x => x.path === e.path)) }; render();
+  const i = Math.max(0, list.findIndex(x => x.path === e.path));
+  await withLocal(list[i]);
+  S.viewer = { list, i }; render();
 }
 // One photo or video in the viewer. Both sit in the same grid cell, so the old one can slide out while the new one slides in.
-const vmedia = e => kindOf(e) === 'foto' ? `<img class="vimg2" src="${fileUrl(e.path)}" alt="">`
-  : `<div class="vm"><video class="vimg2" id="vid" src="${fileUrl(e.path)}" controls autoplay></video><div class="vfail" id="vfail" hidden>${esc(t('viewer.noPlay'))}</div></div>`;
+const vmedia = e => kindOf(e) === 'foto' ? `<img class="vimg2" src="${fileUrl(e.local || e.path)}" alt="">`
+  : `<div class="vm"><video class="vimg2" id="vid" src="${fileUrl(e.local || e.path)}" controls autoplay></video><div class="vfail" id="vfail" hidden>${esc(t('viewer.noPlay'))}</div></div>`;
 const vtitle = e => `<b>${esc(e.name)}</b><small>${esc(t('kind.' + kindOf(e)))} · ${esc(F(e.size))} · ${esc(fdate(e.mtime))}</small>`;
 // Next or previous: only the picture changes, with a short slide. The viewer itself stays open.
-function viewerGo(d) {
+async function viewerGo(d) {
   const v = S.viewer, n = v.list.length; if (n < 2) return;
-  v.i = (v.i + d + n) % n;
+  const i = (v.i + d + n) % n; await withLocal(v.list[i]);
+  if (S.viewer !== v) return; v.i = i;
   const stage = document.querySelector('.vstage'); if (!stage) return render();
   const e = v.list[v.i], dir = d > 0 ? 'r' : 'l';
   stage.querySelectorAll(':scope > *').forEach(old => {
@@ -444,7 +455,7 @@ document.addEventListener('click', ev => {
     if (a === 'openitem' && sel[0]) return openEntry(sel[0]);
     if (a === 'showitem') return api.show(sel[0] ? sel[0].path : S.cur);
     if (a === 'vclose') { S.viewer = null; return render(); }
-    if (a === 'vopen') return api.open(S.viewer.list[S.viewer.i].path);
+    if (a === 'vopen') { const v = S.viewer.list[S.viewer.i]; return api.open(v.local || v.path); }
     if (a === 'pclose') { S.props = null; return render(); }
   }
   if (el = c('.rw[data-i],.gf[data-i],.tl[data-i]')) return clickRow(ev, el);
