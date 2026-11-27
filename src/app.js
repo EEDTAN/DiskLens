@@ -37,6 +37,7 @@ const DISK = '<svg viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 
 const GEAR = '<svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8.5 4.5v-2l-2-.6-.5-1.2 1-1.800-1.400-1.400-1.800 1-1.200-.5-.6-2h-2l-.6 2-1.200.5-1.800-1L5.600 7.400l1 1.800-.5 1.200-2 .6v2l2 .6.5 1.200-1 1.800 1.400 1.400 1.800-1 1.200.5.6 2h2l.6-2 1.200-.5 1.800 1 1.400-1.400-1-1.800.5-1.200z"/></svg>';
 const ICON_AN = '<svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zm-1.2 13.6l6-6-1.400-1.400-4.600 4.600-2.200-2.200-1.400 1.400z"/></svg>';
 const ICON_OLD = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm1 5h-2v6l5 3 1-1.700-4-2.300z"/></svg>';
+const ICON_TYPES = '<svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg>';
 const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 const LOGO = '<svg viewBox="0 0 40 40"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cff"/><stop offset="1" stop-color="#ff80d8"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#lgg)"/><circle cx="17" cy="17" r="9" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M17 17V10.2A6.8 6.8 0 0 1 23.8 17Z" fill="#fff" opacity=".9"/><path d="M23.5 23.5L30.5 30.5" stroke="#fff" stroke-width="4.2" stroke-linecap="round"/></svg>';
 const ILLU = '<svg viewBox="0 0 140 120"><defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd37a"/><stop offset="1" stop-color="#ff9f43"/></linearGradient></defs><path d="M20 40a10 10 0 0 1 10-10h28l10 12h42a10 10 0 0 1 10 10v44a10 10 0 0 1-10 10H30a10 10 0 0 1-10-10z" fill="url(#fg)"/><rect x="28" y="38" width="86" height="40" rx="6" fill="#fff" opacity=".85" transform="rotate(-4 70 58)"/><path d="M20 58h104v38a10 10 0 0 1-10 10H30a10 10 0 0 1-10-10z" fill="#ffb54f"/><circle cx="104" cy="30" r="14" fill="#fff" opacity=".9"/><circle cx="92" cy="26" r="9" fill="#fff" opacity=".9"/><circle cx="116" cy="36" r="6" fill="#ff80d8"/><circle cx="96" cy="46" r="5" fill="#5eead4"/><circle cx="62" cy="20" r="14" fill="none" stroke="#fff" stroke-width="5"/><path d="M72 30l12 12" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>';
@@ -108,7 +109,7 @@ api.onDone(async d => {
   const rec = [{ root: d.root, bytes: d.bytes, files: d.files, at: Date.now() }, ...S.recent.filter(r => !same(r.root, d.root))].slice(0, 5);
   S.recent = rec; api.setSettings({ recent: rec });
   S.tray = []; S.gone = new Set(); S.known = new Map(); S.xsel = null; S.tool = 'explorer';
-  Object.assign(S.an, { items: null, tab: 'safe' }); Object.assign(S.dups, { state: 'idle', groups: [], keep: {} }); S.old.items = null; S.oldCount = null;
+  Object.assign(S.an, { items: null, tab: 'safe' }); Object.assign(S.dups, { state: 'idle', groups: [], keep: {} }); S.old.items = null; S.oldCount = null; Object.assign(S.types, { items: null, sum: null });
   S.screen = 'overview'; render(); loadQuick();
   S.an.items = remember(await api.analysis());
   const old = await api.oldFiles(12); S.oldCount = { n: old.length, size: old.reduce((a, x) => a + x.size, 0) };
@@ -128,10 +129,10 @@ function overviewHTML() {
   const card = (tool, ic, a, b, ti, de, st) => `<button class="ac" data-tool="${tool}" style="--a:${a};--b:${b}"><div class="ic">${ic}</div><span class="go2">›</span><b>${esc(ti)}</b><small>${esc(de)}</small><span class="st">${esc(st)}</span></button>`;
   const safeSum = S.an.items ? S.an.items.filter(x => x.risk === 'safe' && !gone(x.path)).reduce((a, x) => a + x.size, 0) : null;
   return shell(`<div class="ovh"><div><small>${esc(t('ov.done', { time: fdur(r.ms) }))}</small><h1>${esc(t('ov.title', { name: S.root }))}</h1></div><span class="pill">${esc(F(r.bytes))}</span><span class="pill">${esc(N(r.files))} ${esc(t('scan.files'))}</span><span class="pill">${esc(N(r.dirs))} ${esc(t('scan.folders'))}</span><span class="sp"></span><button class="ghostb" data-scan="${esc(S.root)}">⟳ ${esc(t('ov.rescan'))}</button><button class="ghostb" data-act="home">${esc(t('ov.change'))}</button></div>
-  <div class="ovgrid"><div class="card2"><h3>${esc(t('ov.byType'))}</h3><div class="stk">${order.map(k => `<i style="--a:${CATC[k][0]};--b:${CATC[k][1]};flex:${Math.max(r.cats[k], tot * 0.004)}" title="${esc(t('cat.' + k))}"></i>`).join('')}</div><div class="cl">${order.map(k => `<div style="--a:${CATC[k][0]};--b:${CATC[k][1]}"><i></i><span>${esc(t('cat.' + k))}</span><b>${esc(F(r.cats[k]))}</b></div>`).join('')}</div></div>
+  <div class="ovgrid"><div class="card2"><h3>${esc(t('ov.byType'))}</h3><div class="stk">${order.map(k => `<i style="--a:${CATC[k][0]};--b:${CATC[k][1]};flex:${Math.max(r.cats[k], tot * 0.004)}" title="${esc(t('cat.' + k))}"></i>`).join('')}</div><div class="cl">${order.map(k => `<div style="--a:${CATC[k][0]};--b:${CATC[k][1]}" ${TYPE_TABS.includes(k) ? `data-tool="types" data-tcat="${k}" class="clk"` : ''}><i></i><span>${esc(t('cat.' + k))}</span><b>${esc(F(r.cats[k]))}</b></div>`).join('')}</div></div>
   <div class="side2"><div class="safe"><small>${esc(isDrive || !drive ? t('ov.free') : t('ov.freeOn', { d: drive.letter }))}</small><div class="n">${drive ? esc(F(drive.free)) : '—'}</div><p>${drive ? esc(t('home.used', { used: F(drive.total - drive.free), total: F(drive.total) })) : ''}</p><button data-act="explore">${esc(t('ov.openExplorer'))} ›</button></div>${drive && drive.type === 'phone' ? `<div class="free"><span>${esc(t('phone.note'))}</span></div>` : ''}${r.unread ? `<div class="free"><span>${esc(t('ov.unread', { n: N(r.unread) }))}</span></div>` : ''}${r.linked ? `<div class="free"><span>${esc(t('ov.linked', { n: N(r.linked) }))}</span></div>` : ''}</div></div>
   <h3 class="ovh2">${esc(t('ov.choose'))}</h3><div class="acts"><button class="ac" data-tool="explorer" style="--a:#8b5cff;--b:#6c3ef2"><div class="ic">${FOLDER}</div><span class="go2">›</span><b>${esc(t('nav.explorer'))}</b><small>${esc(t('ov.explorerDesc'))}</small><span class="st">${esc(t('ov.explorerBadge'))}</span></button>
-  ${card('analysis', ICON_AN, '#ffc15e', '#ff9f2e', t('nav.analysis'), t('ov.analysisDesc'), safeSum == null ? t('ex.loading') : t('ov.safeBadge', { size: F(safeSum) }))}${card('dups', ZIP, '#5eead4', '#38bdf8', t('nav.dups'), t('ov.dupsDesc'), t('ov.dupsBadge'))}${card('old', ICON_OLD, '#b79bff', '#7c4dff', t('ov.old'), t('ov.oldDesc'), S.oldCount ? t('ov.oldBadge', { n: N(S.oldCount.n), size: F(S.oldCount.size) }) : t('ex.loading'))}</div>`);
+  ${card('analysis', ICON_AN, '#ffc15e', '#ff9f2e', t('nav.analysis'), t('ov.analysisDesc'), safeSum == null ? t('ex.loading') : t('ov.safeBadge', { size: F(safeSum) }))}${card('dups', ZIP, '#5eead4', '#38bdf8', t('nav.dups'), t('ov.dupsDesc'), t('ov.dupsBadge'))}${card('old', ICON_OLD, '#b79bff', '#7c4dff', t('ov.old'), t('ov.oldDesc'), S.oldCount ? t('ov.oldBadge', { n: N(S.oldCount.n), size: F(S.oldCount.size) }) : t('ex.loading'))}${card('types', ICON_TYPES, '#ff80d8', '#c76cff', t('nav.types'), t('ov.typesDesc'), t('ov.typesBadge'))}</div>`);
 }
 
 /* ---------- explorer ---------- */
@@ -162,7 +163,7 @@ function sideHTML() {
   return `<aside class="side"><button class="brand" data-act="home" title="${esc(t('nav.home'))}"><span class="lgo">${LOGO}</span>DiskLens</button>
   <button class="nv" data-act="overview" style="color:var(--accent)"><span>‹ ${esc(t('nav.results'))}</span></button>
   <div class="dv"><b>${esc(drive ? driveName(drive) : S.root)}</b><small>${drive ? esc(t('home.used', { used: F(drive.total - drive.free), total: F(drive.total) })) : esc(F(S.rootInfo.bytes))}</small><div class="mb"><i style="width:${drive ? (drive.total - drive.free) / drive.total * 100 : 100}%"></i></div></div>
-  <h5>${esc(t('nav.tools'))}</h5>${[['explorer', FOLDER, 'nav.explorer'], ['analysis', ICON_AN, 'nav.analysis'], ['dups', ZIP, 'nav.dups'], ['old', ICON_OLD, 'ov.old']].map(([k, ic, l]) => `<button class="nv ${S.tool === k ? 'on' : ''}" data-tool="${k}">${ic}<span>${esc(t(l))}</span></button>`).join('')}
+  <h5>${esc(t('nav.tools'))}</h5>${[['explorer', FOLDER, 'nav.explorer'], ['analysis', ICON_AN, 'nav.analysis'], ['dups', ZIP, 'nav.dups'], ['old', ICON_OLD, 'ov.old'], ['types', ICON_TYPES, 'nav.types']].map(([k, ic, l]) => `<button class="nv ${S.tool === k ? 'on' : ''}" data-tool="${k}">${ic}<span>${esc(t(l))}</span></button>`).join('')}
   <h5>${esc(t('nav.quick'))}</h5><button class="nv q" data-go="${esc(S.root)}"><span>${esc(rootName())} ${esc(t('nav.root'))}</span><em>${esc(F(S.rootInfo.bytes))}</em></button>${S.quick.map(q => `<button class="nv q" data-go="${esc(q.path)}"><span>${esc(t('quick.' + q.key))}</span><em>${esc(F(q.size))}</em></button>`).join('')}
   <div class="grow"></div><button class="nv" data-act="settings">${GEAR}<span>${esc(t('settings.title'))}</span></button></aside>`;
 }
@@ -268,8 +269,8 @@ function refreshSel() {
 function applyPreviewThumbs() { document.querySelectorAll('[data-pv]').forEach(el => api.thumb(el.dataset.pv).then(u => { if (u && el.isConnected) el.style.backgroundImage = `url("${u}")`; })); }
 
 /* ---------- viewer & properties ---------- */
-function openViewer(e) {
-  const list = S.view.filter(x => ['foto', 'video'].includes(kindOf(x))); if (!list.length) return;
+function openViewer(e, from = S.view) {
+  const list = from.filter(x => ['foto', 'video'].includes(kindOf(x))); if (!list.length) return;
   S.viewer = { list, i: Math.max(0, list.findIndex(x => x.path === e.path)) }; render();
 }
 // One photo or video in the viewer. Both sit in the same grid cell, so the old one can slide out while the new one slides in.
@@ -493,7 +494,7 @@ setInterval(() => { if (S.screen === 'home' && !document.hidden) refreshDrives()
 /* ---------- start ---------- */
 (async () => {
   const [langs, settings, paths, drives, version] = await Promise.all([api.langs(), api.getSettings(), api.paths(), api.drives(), api.version()]);
-  S.langs = langs; S.paths = paths; S.drives = drives; S.version = version; S.recent = settings.recent || []; S.history = settings.history || [];
+  S.langs = langs; S.paths = paths; S.drives = drives; S.version = version; S.recent = settings.recent || []; S.history = settings.history || []; if (settings.tview) Object.assign(S.types, settings.tview);
   const sys = (navigator.language || 'en').slice(0, 2).toLowerCase();
   S.lang = settings.lang && langs[settings.lang] ? settings.lang : (langs[sys] ? sys : 'en');
   S.theme = settings.theme || 'light'; applyTheme();

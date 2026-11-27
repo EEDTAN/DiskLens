@@ -54,7 +54,7 @@ Counters climb while DiskLens reads, and the biggest files show up as soon as th
 
 ### 3. See the results and pick a tool
 
-Space by file type, free space left, and four ways to look closer: **Explorer**, **Analysis**, **Duplicates** and **Old files**.
+Space by file type, free space left, and five ways to look closer: **Explorer**, **Analysis**, **Duplicates**, **Old files** and **File types**.
 
 <p align="center"><img src="docs/screenshots/results.png" alt="Results page with space by file type and the four tools" width="88%"></p>
 
@@ -119,6 +119,10 @@ Finds files with identical content: same size, then the same start and end, then
 Big files (50 MB or more) that have not changed in 6, 12, 24 or 36 months.
 
 <p align="center"><img src="docs/screenshots/old-files.png" alt="Old files" width="88%"></p>
+
+### 9. File types
+
+Every video, photo, song, document and archive of 64 KB or more, each type in its own tab, biggest first. Show them as a list or as a grid with a size slider, and double-click a photo or video to open it in the viewer.
 
 ---
 

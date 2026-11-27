@@ -206,4 +206,15 @@ function explain(p, isDir, opts = {}) {
   return { risk, what, del, tip: own && !own.area ? ['r.' + own.id + '.tip', {}] : null };
 }
 
-module.exports = { RULES, classify, protectedReason, analyze, explain, context, setApps, TYPE_OF };
+// Category of a file by extension, same lists as native/fastscan.cs.
+const CAT = {};
+const put = (c, list) => list.split(' ').forEach(e => { CAT[e] = c; });
+put('video', 'mp4 mkv avi mov wmv webm flv m4v mpg mpeg 3gp');
+put('image', 'jpg jpeg png gif webp bmp heic tif tiff raw cr2 nef svg ico psd');
+put('audio', 'mp3 wav flac aac ogg m4a wma opus');
+put('doc', 'pdf doc docx xls xlsx ppt pptx txt md rtf csv odt ods');
+put('archive', 'zip rar 7z tar gz bz2 iso img vhd vhdx');
+put('app', 'exe dll sys msi bat cmd com ocx drv cab msu');
+const catOf = name => { const i = name.lastIndexOf('.'); return (i > 0 && CAT[name.slice(i + 1).toLowerCase()]) || 'other'; };
+
+module.exports = { CAT, catOf, RULES, classify, protectedReason, analyze, explain, context, setApps, TYPE_OF };

@@ -7,6 +7,22 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.12
+
+- **File types.** A new tool with one tab per type: Video, Photos, Audio, Documents and Archives. Each tab lists every file of that type (64 KB and up) from the whole scan, biggest first, with where it lives. Windows and program folders are left out.
+- Show the files as a **list** or a **grid**, and drag the slider to make the thumbnails bigger or smaller. The choice is remembered.
+- **Double-click a photo or video** to open it straight in the viewer; the arrow keys move through the rest of the tab. Clicking the preview in the side panel does the same.
+- The type rows in "Space by type" on the results page open the matching tab.
+- Sharper thumbnails.
+
+## Yang baru di 0.3.12
+
+- **Jenis file.** Alat baru dengan satu tab per jenis: Video, Foto, Audio, Dokumen, dan Arsip. Tiap tab menampilkan semua file jenis itu (64 KB ke atas) dari seluruh hasil scan, dari yang terbesar, lengkap dengan lokasinya. Folder Windows dan program tidak ikut.
+- Tampilkan file sebagai **daftar** atau **grid**, lalu geser penggeser untuk memperbesar atau memperkecil gambar. Pilihannya diingat.
+- **Klik dua kali foto atau video** untuk langsung membukanya di penampil; tombol panah berpindah ke file lain di tab itu. Klik pratinjau di panel samping juga bisa.
+- Baris jenis di "Isi disk menurut jenis" pada halaman hasil scan langsung membuka tab yang sesuai.
+- Gambar kecil (thumbnail) lebih tajam.
+
 ## What is new in 0.3.11
 
 - **Delete phone files.** Files and folders on a phone plugged in by USB can now be cleaned up from DiskLens, the same way File Explorer deletes them. A phone has no Recycle Bin, so you get two choices:

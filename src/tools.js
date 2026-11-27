@@ -1,8 +1,8 @@
-/* Tools: Analysis, Duplicates, Old files, the collector (basket) and clean-up actions.
+/* Tools: Analysis, Duplicates, Old files, File types, the collector (basket) and clean-up actions.
    Uses the globals from app.js (S, t, esc, F, N, render, ...). */
 Object.assign(S, {
   tool: 'explorer', tray: [], known: new Map(), gone: new Set(), risk: new Map(), xsel: null,
-  an: { items: null, tab: 'safe' }, dups: { state: 'idle', min: 10, prog: null, groups: [], keep: {} }, old: { months: 12, items: null },
+  an: { items: null, tab: 'safe' }, dups: { state: 'idle', min: 10, prog: null, groups: [], keep: {} }, old: { months: 12, items: null }, types: { cat: 'video', items: null, sum: null, mode: 'grid', size: 170 },
   modal: null, op: { action: 'bin', secure: false, verify: true, origAfter: 'perm', dest: null, destFree: null, word: '', confirmed: new Set(), prog: null, result: null },
   armed: null, history: [], closed: new Set(),
 });
@@ -146,7 +146,7 @@ async function runOp() {
   okList.forEach(x => S.gone.add(x.path));
   S.tray = S.tray.filter(x => !okList.some(r => same(r.path, x.path)));
   if (res.rootBytes != null && S.rootInfo) S.rootInfo.bytes = res.rootBytes;
-  S.an.items = null; S.old.items = null;
+  S.an.items = null; S.old.items = null; S.types.items = null;
   if (okList.length) S.history = [{ at: Date.now(), action: o.action, n: okList.length, bytes: res.results.reduce((a, x) => a + (x.freed || 0), 0), dest: o.action === 'move' ? o.dest : undefined }, ...S.history].slice(0, 50);
   api.setSettings({ history: S.history });
   S.modal = 'done'; render();
@@ -158,6 +158,7 @@ async function runOp() {
 async function loadTool() {
   if (S.tool === 'analysis' && !S.an.items) { S.an.items = remember(await api.analysis()); anKids.clear(); await Promise.all([...anOpen].map(loadAnKids)); render(); }
   if (S.tool === 'old' && !S.old.items) { const l = remember(await api.oldFiles(S.old.months)); const rk = await api.classifyMany(l.map(x => [x.path, false])); l.forEach((x, i) => Object.assign(x, rk[i])); S.old.items = l; render(); }
+  if (S.tool === 'types' && !S.types.items) { const cat = S.types.cat, r = await api.typeFiles(cat), l = remember(r.items); const rk = l.length ? await api.classifyMany(l.map(x => [x.path, false])) : []; l.forEach((x, i) => Object.assign(x, rk[i])); if (S.types.cat !== cat) return; Object.assign(S.types, { items: l, sum: r.sum }); render(); }
 }
 function rowX(it, total, sub, grad) {
   const line = sub !== undefined ? sub : (it.contents ? t('an.contentsOnly') + ' · ' : '') + exText(it, 'what');
@@ -207,7 +208,7 @@ function analysisHTML() {
 function riskPanel(it) {
   if (!it) {
     const k = S.tool;
-    return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t(k === 'analysis' ? 'nav.analysis' : k === 'dups' ? 'nav.dups' : 'ov.old'))}</span><h2>${esc(t('panel.pick'))}</h2><small>${esc(t('panel.pickHint.' + k))}</small></div><div class="det"><div class="card"><h4>${esc(t('an.legend'))}</h4>${['safe', 'caution', 'danger'].map(r => `<p class="lg"><i style="background:${RC[r]}"></i><span><b>${esc(t('risk.' + r))}</b> · ${esc(t('risk.' + r + '.desc'))}</span></p>`).join('')}</div></div>`;
+    return `<div class="hero"><span class="chip" style="--c:var(--accent)">${esc(t({ analysis: 'nav.analysis', dups: 'nav.dups', old: 'ov.old', types: 'nav.types' }[k]))}</span><h2>${esc(t('panel.pick'))}</h2><small>${esc(t('panel.pickHint.' + k))}</small></div><div class="det"><div class="card"><h4>${esc(t('an.legend'))}</h4>${['safe', 'caution', 'danger'].map(r => `<p class="lg"><i style="background:${RC[r]}"></i><span><b>${esc(t('risk.' + r))}</b> · ${esc(t('risk.' + r + '.desc'))}</span></p>`).join('')}</div></div>`;
   }
   const tip = exText(it, 'tip'), k = kindOf(it);
   if (/\.(exe|dll|sys|ocx|drv|scr)$/i.test(it.path) && it.ver === undefined) { it.ver = null; api.verinfo(it.path).then(v => { it.ver = v || false; if (S.xsel === it.path) { $('panel').innerHTML = toolPanel(); applyPreviewThumbs(); } }); }
@@ -259,9 +260,28 @@ function oldHTML() {
   return seg + `<div class="exp">${list.length ? `<p class="osum">${esc(t('old.sum', { n: N(list.length), size: F(tot) }))}</p>` + treeHTML(list.slice(0, 400), tot, x => t('old.changed', { d: fdate(x.mtime) })) : `<div class="empty2">${esc(t('old.none'))}</div>`}</div>`;
 }
 
+/* ---------- file types ---------- */
+const TYPE_TABS = ['video', 'image', 'audio', 'doc', 'archive'];
+function typesHTML() {
+  const T = S.types, sum = T.sum || {};
+  const tabs = TYPE_TABS.map(k => `<button class="at ${T.cat === k ? 'on' : ''}" data-ttab="${k}" style="--c:${CATC[k][1]}"><i></i><b>${esc(t('cat.' + k))}</b><span>${esc(T.sum ? F((sum[k] || {}).size || 0) : '…')}</span><small>${esc(T.sum ? t('ex.items', { n: N((sum[k] || {}).n || 0) }) : '')}</small></button>`).join('');
+  if (!T.items) return `<div class="ats five">${tabs}</div><div class="exp"><div class="empty2"><div class="spinner"></div>${esc(t('ex.loading'))}</div></div>`;
+  const list = T.items.filter(x => !gone(x.path)), tot = list.reduce((a, x) => a + x.size, 0), all = sum[T.cat] || { n: 0 };
+  const view = `${T.mode === 'grid' ? `<label class="gsz" title="${esc(t('types.size'))}">▫<input type="range" id="tsize" min="110" max="340" step="10" value="${T.size}">▣</label>` : ''}<div class="seg">${[['list', 'ex.list'], ['grid', 'ex.grid']].map(([k, l]) => `<button class="${T.mode === k ? 'on' : ''}" data-tmode="${k}">${esc(t(l))}</button>`).join('')}</div>`;
+  const card = x => `<div class="gf xr ${S.xsel === x.path ? 'sel' : ''}" data-p="${esc(x.path)}" draggable="true" style="${gradOf(x)}" title="${esc(x.path)}">${['foto', 'video'].includes(kindOf(x)) ? visual(x) : `<div class="fi">${glyph(x)}</div>`}<b>${esc(x.name)}</b><small><span>${esc(F(x.size))}</span><span>${esc(fdate(x.mtime))}</span></small>${addBtnX(x)}</div>`;
+  const body = !list.length ? `<div class="empty2">${esc(t('types.none'))}</div>` : T.mode === 'grid' ? `<div class="grid tgrid" style="--gs:${T.size}px">${list.map(card).join('')}</div>` : list.map(x => rowX(x, tot, locLine(x))).join('');
+  return `<div class="ats five">${tabs}</div><div class="tb2 inl"><span class="info">${esc(t('types.note'))}${all.n > T.items.length ? ' ' + esc(t('types.capped', { n: N(list.length) })) : ''}</span><span class="sp"></span>${collectAllBar(list)}${view}</div><div class="exp">${body}</div>`;
+}
+// Photos and videos open straight in the viewer; it slides through the other photos/videos of the same list.
+function previewItem(it) {
+  if (!it || !['foto', 'video'].includes(kindOf(it))) return false;
+  const src = S.tool === 'types' ? S.types.items : currentList();
+  openViewer(it, (src || []).filter(x => !gone(x.path))); return true;
+}
+
 /* ---------- tool frame ---------- */
 function toolTop() {
-  const ti = { analysis: 'nav.analysis', dups: 'nav.dups', old: 'ov.old' }[S.tool], sub = { analysis: 'an.sub', dups: 'dups.sub', old: 'old.sub' }[S.tool];
+  const ti = { analysis: 'nav.analysis', dups: 'nav.dups', old: 'ov.old', types: 'nav.types' }[S.tool], sub = { analysis: 'an.sub', dups: 'dups.sub', old: 'old.sub', types: 'types.sub' }[S.tool];
   return `<div class="tb1"><div style="flex:1"><small style="color:var(--mute);font-size:13px">${esc(t(sub))}</small><h1 style="font-size:26px;letter-spacing:-.7px">${esc(t(ti))}</h1></div></div>`;
 }
 const pickable = list => list.filter(it => it.risk !== 'danger' && !it.rest && !it.lock);
@@ -274,8 +294,8 @@ function collectAllBar(list) {
     : `<button class="pbtn sm ghostp" data-act2="uncollectall">☐ ${esc(t('ex.selectNone'))}</button>`;
   return toggle;
 }
-const currentList = () => S.tool === 'analysis' ? (S.an.items || []).filter(v => v.risk === S.an.tab && !gone(v.path)).slice(0, 400) : S.tool === 'old' ? (S.old.items || []).filter(v => !gone(v.path)).slice(0, 400) : [];
-const toolMain = () => S.tool === 'analysis' ? analysisHTML() : S.tool === 'dups' ? dupsHTML() : oldHTML();
+const currentList = () => S.tool === 'analysis' ? (S.an.items || []).filter(v => v.risk === S.an.tab && !gone(v.path)).slice(0, 400) : S.tool === 'old' ? (S.old.items || []).filter(v => !gone(v.path)).slice(0, 400) : S.tool === 'types' ? (S.types.items || []).filter(v => !gone(v.path)) : [];
+const toolMain = () => S.tool === 'analysis' ? analysisHTML() : S.tool === 'dups' ? dupsHTML() : S.tool === 'types' ? typesHTML() : oldHTML();
 const toolPanel = () => riskPanel(S.xsel ? itemByPath(S.xsel) : null);
 function toolCtx(ev) {
   const row = ev.target.closest('[data-p]'); if (!row) return;
@@ -291,9 +311,12 @@ function toolCtx(ev) {
 /* ---------- clicks for the tools ---------- */
 document.addEventListener('click', async ev => {
   const c = s => ev.target.closest(s); let el;
-  if (el = c('[data-tool]')) { if (el.classList.contains('dis')) return; S.tool = el.dataset.tool; S.xsel = null; S.screen = 'work'; if (S.tool === 'explorer' && !S.cur) return explore(); render(); return loadTool(); }
+  if (el = c('[data-tool]')) { if (el.classList.contains('dis')) return; S.tool = el.dataset.tool; S.xsel = null; S.screen = 'work'; if (el.dataset.tcat && el.dataset.tcat !== S.types.cat) Object.assign(S.types, { cat: el.dataset.tcat, items: null }); if (S.tool === 'explorer' && !S.cur) return explore(); render(); return loadTool(); }
   if (el = c('[data-tadd]')) { ev.stopPropagation(); return addTray([itemByPath(el.dataset.tadd)]); }
   if (el = c('[data-trm]')) { S.tray = S.tray.filter(x => !same(x.path, el.dataset.trm)); return render(); }
+  if (el = c('[data-tmode]')) { S.types.mode = el.dataset.tmode; api.setSettings({ tview: { mode: S.types.mode, size: S.types.size } }); return render(); }
+  if (el = c('.card.pv .pvimg')) return previewItem(itemByPath(S.xsel));
+  if (el = c('[data-ttab]')) { if (S.types.cat === el.dataset.ttab) return; Object.assign(S.types, { cat: el.dataset.ttab, items: null }); S.xsel = null; render(); return loadTool(); }
   if (el = c('[data-antab]')) { S.an.tab = el.dataset.antab; S.xsel = null; return render(); }
   if (el = c('[data-reveal]')) return reveal(el.dataset.reveal);
   if (el = c('[data-show]')) return api.show(el.dataset.show);
@@ -332,8 +355,8 @@ document.addEventListener('change', e => {
   if (tg.id === 'ver') { S.op.verify = tg.checked; render(); }
   if (tg.name === 'oa') { S.op.origAfter = tg.value; render(); }
 });
-document.addEventListener('input', e => { if (e.target.id === 'hp') { S.op.word = e.target.value; const r = $('run'); if (r) r.disabled = !canRun(); } });
-document.addEventListener('dblclick', e => { const tf = e.target.closest('.tfr[data-tf]'); if (tf && !e.target.closest('.chevb')) { const k = tf.dataset.tf; S.closed.has(k) ? S.closed.delete(k) : S.closed.add(k); return render(); } if (e.target.closest('[data-axt]')) return; const el = e.target.closest('.xr[data-p]'); if (el && S.tool === 'analysis' && (itemByPath(el.dataset.p) || {}).dir) return toggleAn(el.dataset.p); if (el && S.tool !== 'explorer') { const it = itemByPath(el.dataset.p); if (it && it.dir) reveal(it.path); else if (it) api.open(it.path); } });
+document.addEventListener('input', e => { if (e.target.id === 'tsize') { S.types.size = +e.target.value; const g = document.querySelector('.tgrid'); if (g) g.style.setProperty('--gs', S.types.size + 'px'); api.setSettings({ tview: { mode: S.types.mode, size: S.types.size } }); return; } if (e.target.id === 'hp') { S.op.word = e.target.value; const r = $('run'); if (r) r.disabled = !canRun(); } });
+document.addEventListener('dblclick', e => { const tf = e.target.closest('.tfr[data-tf]'); if (tf && !e.target.closest('.chevb')) { const k = tf.dataset.tf; S.closed.has(k) ? S.closed.delete(k) : S.closed.add(k); return render(); } if (e.target.closest('[data-axt]')) return; const el = e.target.closest('.xr[data-p]'); if (el && S.tool === 'analysis' && (itemByPath(el.dataset.p) || {}).dir) return toggleAn(el.dataset.p); if (el && S.tool !== 'explorer') { const it = itemByPath(el.dataset.p); if (it && it.dir) reveal(it.path); else if (it && !previewItem(it)) api.open(it.path); } });
 document.addEventListener('keydown', e => {
   if (S.screen !== 'work' || S.modal || S.viewer || S.props || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) { if (e.key === 'Escape' && S.modal === 'confirm') { S.modal = null; render(); } return; }
   if (e.key === 'Delete') { const act = e.shiftKey ? 'perm' : 'bin'; if (S.tool === 'explorer') { const l = selList(); if (l.length) deleteNow(l, act); } else if (S.xsel) deleteNow([itemByPath(S.xsel)], act); else if (S.tray.length) reviewWith(act); }

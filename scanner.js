@@ -7,16 +7,10 @@ const root = workerData.root;
 let files = 0, dirs = 0, bytes = 0, unread = 0, linked = 0, cur = root;
 const seen = new Set(); // hard-linked files already counted
 const BIG = 50 * 1024 * 1024;
+const TYPED = 64 * 1024; // smaller media/documents are skipped in the per-type lists (icons, thumbnails)
 const top = [];
 const cats = { video: 0, image: 0, audio: 0, doc: 0, archive: 0, app: 0, other: 0 };
-const CAT = {};
-const put = (c, list) => list.split(' ').forEach(e => { CAT[e] = c; });
-put('video', 'mp4 mkv avi mov wmv webm flv m4v mpg mpeg 3gp');
-put('image', 'jpg jpeg png gif webp bmp heic tif tiff raw cr2 nef svg ico psd');
-put('audio', 'mp3 wav flac aac ogg m4a wma opus');
-put('doc', 'pdf doc docx xls xlsx ppt pptx txt md rtf csv odt ods');
-put('archive', 'zip rar 7z tar gz bz2 iso img vhd vhdx');
-put('app', 'exe dll sys msi bat cmd com ocx drv cab msu');
+const { CAT } = require('./rules');
 
 // Limit how many file-system calls run at once.
 let slots = 64;
@@ -49,10 +43,13 @@ async function walk(dir, node) {
       if (st.nlink > 1n) { const id = st.dev + ':' + st.ino; if (seen.has(id)) { linked++; return; } seen.add(id); }
       const size = Number(st.size);
       node.s += size; bytes += size;
-      cats[CAT[path.extname(e.name).slice(1).toLowerCase()] || 'other'] += size;
+      const cat = CAT[path.extname(e.name).slice(1).toLowerCase()] || 'other';
+      cats[cat] += size;
       pushTop(e.name, p, size);
       // Remember big files (name, size, last change) for Analysis and Old files.
       if (size >= BIG) (node.b || (node.b = [])).push([e.name, size, Number(st.mtimeMs)]);
+      // Smaller videos, photos, music, documents and archives go to node.t for the File types tool.
+      else if (size >= TYPED && cat !== 'app' && cat !== 'other') (node.t || (node.t = [])).push([e.name, size, Number(st.mtimeMs)]);
     } catch { /* file vanished or unreadable */ }
   })));
   const kids = await Promise.all(subs.map(async e => {

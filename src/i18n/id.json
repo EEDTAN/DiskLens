@@ -490,5 +490,14 @@
   "r.phonewa.tip": "Menu Penyimpanan di WhatsApp menunjukkan file besar per obrolan.",
   "r.phonedl.what": "File yang kamu unduh di HP lewat browser atau aplikasi.",
   "r.phonedl.del": "Unduhannya hilang. Pastikan tidak ada file yang masih kamu butuhkan.",
-  "r.phonedl.tip": "Installer lama (.apk) dan dokumen yang sudah dibaca biasanya aman dihapus."
+  "r.phonedl.tip": "Installer lama (.apk) dan dokumen yang sudah dibaca biasanya aman dihapus.",
+  "nav.types": "Jenis file",
+  "ov.typesDesc": "Semua video, foto, musik, dokumen dan arsip, tiap jenis punya tab sendiri.",
+  "ov.typesBadge": "Video · Foto · Dokumen",
+  "types.sub": "Semua file satu jenis, dari yang terbesar",
+  "types.note": "File 64 KB ke atas. Folder Windows dan program tidak ikut. Klik dua kali foto atau video untuk melihatnya.",
+  "types.capped": "Yang tampil {n} terbesar.",
+  "types.none": "Tidak ada file jenis ini.",
+  "panel.pickHint.types": "Klik file untuk melihat keterangannya.",
+  "types.size": "Ukuran gambar"
 }

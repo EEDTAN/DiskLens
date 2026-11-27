@@ -220,7 +220,7 @@ ipcMain.handle('fs:thumb', (_, p) => new Promise(resolve => {
   queue.push(async () => {
     let url = null;
     try {
-      let img = nativeImage.createThumbnailFromPath ? await nativeImage.createThumbnailFromPath(p, { width: 256, height: 176 }) : nativeImage.createFromPath(p).resize({ width: 256 });
+      let img = nativeImage.createThumbnailFromPath ? await nativeImage.createThumbnailFromPath(p, { width: 480, height: 330 }) : nativeImage.createFromPath(p).resize({ width: 480 });
       if (img && !img.isEmpty()) url = 'data:image/jpeg;base64,' + img.toJPEG(78).toString('base64');
     } catch { /* no thumbnail for this file */ }
     thumbCache.set(p, url);
@@ -293,6 +293,21 @@ ipcMain.handle('old:list', (_, months) => {
   return out.sort((a, b) => b.size - a.size).slice(0, 1000);
 });
 
+// Every video / photo / music / document / archive file of the scan (64 KB and up), biggest first, plus totals per type.
+ipcMain.handle('type:list', (_, cat) => {
+  const s = scanOf(lastRoot), sum = {}, out = []; if (!s) return { sum, items: out };
+  (function walk(node, p) {
+    if (SYSTEM_AREA.test(p)) return;
+    for (const l of [node.b, node.t]) for (const [name, size, mtime] of l || []) {
+      const c = rules.catOf(name); if (c === 'app' || c === 'other') continue;
+      const x = sum[c] || (sum[c] = { n: 0, size: 0 }); x.n++; x.size += size;
+      if (c === cat) out.push({ path: join(p, name), name, size, mtime: mtime || null, dir: false });
+    }
+    for (const c of node.c) walk(c, join(p, c.n));
+  })(s.tree, s.root);
+  return { sum, items: out.sort((a, b) => b.size - a.size).slice(0, 2000) }; // ponytail: list capped at 2000, page it if people need more
+});
+
 /* ---------- duplicates (worker) ---------- */
 ipcMain.handle('dups:start', (_, { root, minSize }) => {
   if (dupWorker) dupWorker.terminate();
@@ -314,7 +329,7 @@ function forget(p, freed, gone) {
   const kid = parent.c.find(k => k.n.toLowerCase() === name);
   // Gone for good: the file and folder counts above it shrink too (a file is not a node, so it counts as one file).
   if (gone) { const f = kid ? kid.f : 1, d = kid ? kid.d + 1 : 0; for (const n of chain) { n.f = Math.max(0, n.f - f); n.d = Math.max(0, n.d - d); } }
-  if (gone) { parent.c = parent.c.filter(k => k.n.toLowerCase() !== name); if (parent.b) parent.b = parent.b.filter(b => b[0].toLowerCase() !== name); }
+  if (gone) { parent.c = parent.c.filter(k => k.n.toLowerCase() !== name); for (const k of ['b', 't']) if (parent[k]) parent[k] = parent[k].filter(b => b[0].toLowerCase() !== name); }
   else if (kid) kid.s = Math.max(0, kid.s - freed);
 }
 /* ---------- phone clean-up ---------- */

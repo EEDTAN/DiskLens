@@ -52,7 +52,7 @@ Angka terus naik selama DiskLens membaca, dan file terbesar langsung muncul begi
 
 ### 3. Lihat hasil dan pilih alat
 
-Ruang per jenis file, sisa ruang kosong, dan empat cara melihat lebih dekat: **Penjelajah**, **Analisis**, **Duplikat**, dan **File lama**.
+Ruang per jenis file, sisa ruang kosong, dan lima cara melihat lebih dekat: **Penjelajah**, **Analisis**, **Duplikat**, **File lama**, dan **Jenis file**.
 
 <p align="center"><img src="docs/screenshots/results.png" alt="Halaman hasil dengan ruang per jenis file dan empat alat" width="88%"></p>
 
@@ -117,6 +117,10 @@ Mencari file yang isinya sama persis: ukuran sama, lalu awal dan akhir sama, lal
 File besar (50 MB ke atas) yang tidak berubah selama 6, 12, 24, atau 36 bulan.
 
 <p align="center"><img src="docs/screenshots/old-files.png" alt="File lama" width="88%"></p>
+
+### 9. Jenis file
+
+Semua video, foto, musik, dokumen, dan arsip berukuran 64 KB ke atas, tiap jenis di tab sendiri, dari yang terbesar. Tampilkan sebagai daftar atau grid dengan penggeser ukuran, lalu klik dua kali foto atau video untuk membukanya di penampil.
 
 ---
 

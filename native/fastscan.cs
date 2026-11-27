@@ -60,7 +60,7 @@ public class OnlyRecycle : IFileOperationProgressSink {
 }
 
 class Big { public string n; public long s; public long m; }
-class Node { public string n; public long s, f, d; public List<Node> c = new List<Node>(); public List<Big> b; }
+class Node { public string n; public long s, f, d; public List<Node> c = new List<Node>(); public List<Big> b, t; }
 class Top { public string name, path; public long size; }
 
 static partial class FastScan {
@@ -72,7 +72,7 @@ static partial class FastScan {
   [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
   static extern bool GetVolumeInformationW(string root, StringBuilder name, int nlen, out uint serial, out uint maxlen, out uint flags, StringBuilder fs, int fslen);
 
-  const long BIG = 50L * 1024 * 1024;
+  const long BIG = 50L * 1024 * 1024, TYPED = 64L * 1024;
   const uint TAG_MOUNT = 0xA0000003, TAG_SYMLINK = 0xA000000C;
   static long files, dirs, bytes, unread, linked, topMin;
   static volatile string cur = "";
@@ -119,6 +119,9 @@ static partial class FastScan {
                 if (size >= BIG) {
                   if (node.b == null) node.b = new List<Big>();
                   node.b.Add(new Big { n = name, s = size, m = BitConverter.ToInt64(buf, off + 24) / 10000 - 11644473600000L });
+                } else if (size >= TYPED && c < 5) { // smaller media/documents/archives for the File types tool
+                  if (node.t == null) node.t = new List<Big>();
+                  node.t.Add(new Big { n = name, s = size, m = BitConverter.ToInt64(buf, off + 24) / 10000 - 11644473600000L });
                 }
               }
             }
@@ -158,12 +161,14 @@ static partial class FastScan {
     w.Write(",\"s\":" + n.s + ",\"f\":" + n.f + ",\"d\":" + n.d + ",\"c\":[");
     for (int i = 0; i < n.c.Count; i++) { if (i > 0) w.Write(','); Tree(w, n.c[i]); }
     w.Write(']');
-    if (n.b != null) {
-      w.Write(",\"b\":[");
-      for (int i = 0; i < n.b.Count; i++) { if (i > 0) w.Write(','); w.Write('['); Str(w, n.b[i].n); w.Write("," + n.b[i].s + "," + n.b[i].m + "]"); }
-      w.Write(']');
-    }
+    Files(w, "b", n.b); Files(w, "t", n.t);
     w.Write('}');
+  }
+  static void Files(TextWriter w, string key, List<Big> l) {
+    if (l == null) return;
+    w.Write(",\"" + key + "\":[");
+    for (int i = 0; i < l.Count; i++) { if (i > 0) w.Write(','); w.Write('['); Str(w, l[i].n); w.Write("," + l[i].s + "," + l[i].m + "]"); }
+    w.Write(']');
   }
   static string TopJson() {
     var sw = new StringWriter(); sw.Write('[');

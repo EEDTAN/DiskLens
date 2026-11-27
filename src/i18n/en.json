@@ -500,5 +500,14 @@
   "r.phonewa.tip": "WhatsApp's own Storage menu shows big files per chat.",
   "r.phonedl.what": "Files you downloaded on the phone from the browser or apps.",
   "r.phonedl.del": "The downloads are gone. Check that nothing here is a file you still need.",
-  "r.phonedl.tip": "Old installers (.apk) and documents you already read are usually safe."
+  "r.phonedl.tip": "Old installers (.apk) and documents you already read are usually safe.",
+  "nav.types": "File types",
+  "ov.typesDesc": "Every video, photo, song, document and archive, each type in its own tab.",
+  "ov.typesBadge": "Video · Photos · Documents",
+  "types.sub": "All files of one kind, biggest first",
+  "types.note": "Files of 64 KB and up. Windows and program folders are left out. Double-click a photo or video to preview it.",
+  "types.capped": "Showing the biggest {n}.",
+  "types.none": "No files of this type.",
+  "panel.pickHint.types": "Click a file to see more about it.",
+  "types.size": "Thumbnail size"
 }

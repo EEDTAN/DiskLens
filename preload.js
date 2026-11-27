@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   guard: inv('ops:guard'),
   verinfo: inv('fs:verinfo'),
   oldFiles: inv('old:list'),
+  typeFiles: inv('type:list'),
   dupsStart: inv('dups:start'),
   dupsCancel: inv('dups:cancel'),
   runOp: inv('ops:run'),
