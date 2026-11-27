@@ -7,6 +7,22 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.10
+
+- **Phones and tablets**: a phone plugged in by USB now shows up under the drives on the home screen, next to C: and D:. Scan it like a drive and browse its folders in Explorer, Analysis and Old files. It is read through Windows Portable Devices (MTP), the same way File Explorer shows it under "This PC".
+- If the phone is locked or set to "Charging only", DiskLens says so: unlock it, choose **File transfer**, then press ⟳.
+- Only files you can see from a PC are counted. Android itself and app data are hidden from computers, so the total is lower than the phone's "used" space.
+- Phone files are read-only in DiskLens: delete them on the phone or in File Explorer.
+- New drives and phones appear on the home screen without restarting DiskLens.
+
+## Yang baru di 0.3.10
+
+- **HP dan tablet**: HP yang dicolok lewat USB sekarang muncul di daftar drive di beranda, di samping C: dan D:. Scan seperti drive biasa, lalu buka folder-foldernya di Penjelajah, Analisis, dan File lama. HP dibaca lewat Windows Portable Devices (MTP), sama seperti File Explorer menampilkannya di "This PC".
+- Kalau HP terkunci atau dalam mode "Hanya mengisi daya", DiskLens memberi tahu: buka kunci HP, pilih **Transfer file**, lalu tekan ⟳.
+- Yang dihitung hanya file yang bisa dilihat dari PC. Sistem Android dan data aplikasi disembunyikan dari komputer, jadi totalnya lebih kecil dari ruang "terpakai" di HP.
+- File HP hanya bisa dilihat di DiskLens: hapus lewat HP atau File Explorer.
+- Drive dan HP yang baru dicolok langsung muncul di beranda tanpa membuka ulang DiskLens.
+
 ## What is new in 0.3.9
 
 - **An explanation for every item, not only the ones a rule knows.** DiskLens now builds it from three things Windows already has:

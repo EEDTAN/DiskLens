@@ -1,6 +1,6 @@
 {
   "name": "disklens",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Disk space analyzer with a File Explorer feel. See what is big, and learn what happens before you delete it.",
   "main": "main.js",
   "scripts": {

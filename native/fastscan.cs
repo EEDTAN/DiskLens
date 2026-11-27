@@ -63,7 +63,7 @@ class Big { public string n; public long s; public long m; }
 class Node { public string n; public long s, f, d; public List<Node> c = new List<Node>(); public List<Big> b; }
 class Top { public string name, path; public long size; }
 
-static class FastScan {
+static partial class FastScan {
   [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
   static extern IntPtr CreateFileW(string name, uint access, uint share, IntPtr sec, uint disp, uint flags, IntPtr tmpl);
   [DllImport("kernel32.dll", SetLastError = true)]
@@ -261,6 +261,7 @@ static class FastScan {
     if (args.Length < 1) return 2;
     if (args[0] == "--trash") return Trash();
     if (args[0] == "--apps") return Apps();
+    if (args[0] == "--phones") return Phones();
     if (args[0] == "--types") { var ex = new string[args.Length - 1]; Array.Copy(args, 1, ex, 0, ex.Length); return Types(ex); }
     if (args[0] == "--info") { // description and company written inside a program file
       try {
@@ -277,16 +278,20 @@ static class FastScan {
     Put(3, "pdf doc docx xls xlsx ppt pptx txt md rtf csv odt ods");
     Put(4, "zip rar 7z tar gz bz2 iso img vhd vhdx");
     Put(5, "exe dll sys msi bat cmd com ocx drv cab msu");
-    string root = args[0], dir = root.Replace('/', '\\');
+    bool phone = args[0] == "--mtp" && args.Length >= 4;
+    string root = phone ? args[3] : args[0], dir = root.Replace('/', '\\');
     if (dir.Length > 3) dir = dir.TrimEnd('\\');
     uint serial, maxlen, flags;
-    dedupe = GetVolumeInformationW(Path.GetPathRoot(dir), null, 0, out serial, out maxlen, out flags, null, 0) && (flags & 0x00400000) != 0; // volume supports hard links
+    if (!phone) dedupe = GetVolumeInformationW(Path.GetPathRoot(dir), null, 0, out serial, out maxlen, out flags, null, 0) && (flags & 0x00400000) != 0; // volume supports hard links
     var err = new StreamWriter(Console.OpenStandardError(), new UTF8Encoding(false));
     var tree = new Node { n = root };
     var done = new ManualResetEvent(false);
     var ticker = new Thread(() => { while (!done.WaitOne(120)) Progress(err); }) { IsBackground = true };
     ticker.Start();
-    Walk(dir, tree);
+    if (phone) {
+      try { tree = ScanPhone(args[1], args[2], root); }
+      catch (Exception e) { done.Set(); ticker.Join(); err.WriteLine("phone: " + e.Message); err.Flush(); return 3; }
+    } else Walk(dir, tree);
     done.Set(); ticker.Join();
     var o = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false), 1 << 20);
     o.Write("{\"tree\":"); Tree(o, tree);

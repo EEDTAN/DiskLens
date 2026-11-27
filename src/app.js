@@ -32,6 +32,7 @@ const fdur = ms => ms < 60000 ? Math.max(1, Math.round(ms / 1000)) + ' s' : Math
 const FOLDER = '<svg viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H9l2 2.5h7.5A2.5 2.5 0 0 1 21 9v8.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></svg>';
 const FILE = '<svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm6 1.5V9h4.5z"/></svg>';
 const ZIP = '<svg viewBox="0 0 24 24"><path d="M4 4h16v4H4zm1 5h14v11H5zm6 1v2h2v-2zm0 3v2h2v-2zm0 3v2h2v-2z"/></svg>';
+const PHONE = '<svg viewBox="0 0 24 24"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v13h8V5zm4 14.2a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8z"/></svg>';
 const DISK = '<svg viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm3 9a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm3 0v2h7v-2z"/></svg>';
 const GEAR = '<svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8.5 4.5v-2l-2-.6-.5-1.2 1-1.800-1.400-1.400-1.800 1-1.200-.5-.6-2h-2l-.6 2-1.200.5-1.800-1L5.600 7.400l1 1.800-.5 1.200-2 .6v2l2 .6.5 1.200-1 1.800 1.400 1.400 1.800-1 1.200.5.6 2h2l.6-2 1.200-.5 1.800 1 1.400-1.400-1-1.800.5-1.200z"/></svg>';
 const ICON_AN = '<svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zm-1.2 13.6l6-6-1.400-1.400-4.600 4.600-2.200-2.200-1.400 1.400z"/></svg>';
@@ -67,7 +68,7 @@ function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.
 const logoBtn = cls => `<button class="${cls}" data-act="home" title="${esc(t('nav.home'))}"><span class="lgo">${LOGO}</span>DiskLens</button>`;
 const gearBtn = () => `<button class="gearb" data-act="settings" title="${esc(t('settings.title'))}">${GEAR}</button>`;
 const shell = body => `<div class="shell"><div class="top2">${logoBtn('logo2')}<span class="sp"></span>${gearBtn()}</div>${body}</div>`;
-const driveName = d => (d.label || t(d.type === 2 ? 'drive.removable' : d.type === 4 ? 'drive.network' : 'drive.local')) + ' (' + d.letter + ')';
+const driveName = d => d.type === 'phone' ? d.label + (d.storage ? ' · ' + d.storage : '') : (d.label || t(d.type === 2 ? 'drive.removable' : d.type === 4 ? 'drive.network' : 'drive.local')) + ' (' + d.letter + ')';
 const rootName = () => { const d = S.drives.find(x => same(x.letter + '\\', S.root || '')); return d ? d.letter + '\\' : (S.root || ''); };
 
 /* ---------- home ---------- */
@@ -75,7 +76,7 @@ function homeHTML() {
   const first = S.drives.find(d => d.type === 3) || S.drives[0];
   return shell(`<div class="homegrid"><div class="hl"><div class="hero2"><div><h1>${esc(t('home.title'))}</h1><p>${esc(t('home.sub'))}</p>
     <button class="orange" ${first ? `data-scan="${esc(first.letter)}\\"` : 'disabled'}>${esc(t('home.scanDrive', { d: first ? first.letter : '' }))}</button><button class="lnk2" data-act="pick">${esc(t('home.pickFolder'))}</button></div>${ILLU}</div></div>
-  <div class="hr"><h3>${esc(t('home.drives'))}</h3>${S.drives.map((d, i) => { const used = d.total - d.free; return `<div class="dr"><div class="ic" style="--a:${PAL[i % 5][0]};--b:${PAL[i % 5][1]}">${DISK}</div><div class="t"><b>${esc(driveName(d))}</b><small>${esc(t('home.used', { used: F(used), total: F(d.total) }))}</small><div class="mb"><i style="width:${used / d.total * 100}%"></i></div></div><button class="scanb" data-scan="${esc(d.letter)}\\">${esc(t('home.scan'))}</button></div>`; }).join('') || `<p style="color:var(--mute)">${esc(t('home.noDrives'))}</p>`}
+  <div class="hr"><h3>${esc(t('home.drives'))}</h3>${S.drives.map((d, i) => { const used = d.total - d.free; return `<div class="dr"><div class="ic" style="--a:${PAL[i % 5][0]};--b:${PAL[i % 5][1]}">${d.type === 'phone' ? PHONE : DISK}</div><div class="t"><b>${esc(driveName(d))}</b><small>${esc(d.locked ? t('phone.locked') : t('home.used', { used: F(used), total: F(d.total) }))}</small>${d.locked ? '' : `<div class="mb"><i style="width:${used / d.total * 100}%"></i></div>`}</div>${d.locked ? `<button class="scanb" data-act="redrives">⟳</button>` : `<button class="scanb" data-scan="${esc(d.letter)}\\">${esc(t('home.scan'))}</button>`}</div>`; }).join('') || `<p style="color:var(--mute)">${esc(t('home.noDrives'))}</p>`}
   <h3>${esc(t('home.recent'))}</h3>${S.recent.length ? S.recent.map(r => `<div class="ls"><div class="ic" style="--a:#b79bff;--b:#7c4dff;width:40px;height:40px;border-radius:13px">${DISK}</div><div class="t"><b>${esc(r.root)}</b><small>${esc(fdate(r.at))} · ${esc(N(r.files))} ${esc(t('scan.files'))}</small></div><span class="s">${esc(F(r.bytes))}</span><button class="rescan" data-scan="${esc(r.root)}">${esc(t('home.rescan'))}</button></div>`).join('') : `<p style="color:var(--mute);font-size:13px">${esc(t('home.noRecent'))}</p>`}</div></div>`);
 }
 
@@ -96,13 +97,13 @@ function updateScan() {
 }
 async function startScan(root) {
   const d = S.drives.find(x => same(x.letter + '\\', root));
-  S.scan = { root, files: 0, dirs: 0, bytes: 0, cur: root, top: [], used: d ? d.total - d.free : 0 };
+  S.scan = { root, files: 0, dirs: 0, bytes: 0, cur: root, top: [], used: d && d.type !== 'phone' ? d.total - d.free : 0 }; // a phone's used space includes Android itself, which cannot be read
   S.rootInfo = null; S.prev = 'home'; S.screen = 'scan'; render();
   await api.scan({ root });
 }
 api.onProgress(d => { if (S.screen === 'scan') { Object.assign(S.scan, d); updateScan(); } });
 api.onDone(async d => {
-  if (d.error) { S.screen = 'home'; render(); return toast(d.error); }
+  if (d.error) { S.screen = 'home'; render(); return toast(/PHONE/.test(d.error) ? t('phone.failed') : d.error); }
   S.rootInfo = d; S.root = d.root;
   const rec = [{ root: d.root, bytes: d.bytes, files: d.files, at: Date.now() }, ...S.recent.filter(r => !same(r.root, d.root))].slice(0, 5);
   S.recent = rec; api.setSettings({ recent: rec });
@@ -128,7 +129,7 @@ function overviewHTML() {
   const safeSum = S.an.items ? S.an.items.filter(x => x.risk === 'safe' && !gone(x.path)).reduce((a, x) => a + x.size, 0) : null;
   return shell(`<div class="ovh"><div><small>${esc(t('ov.done', { time: fdur(r.ms) }))}</small><h1>${esc(t('ov.title', { name: S.root }))}</h1></div><span class="pill">${esc(F(r.bytes))}</span><span class="pill">${esc(N(r.files))} ${esc(t('scan.files'))}</span><span class="pill">${esc(N(r.dirs))} ${esc(t('scan.folders'))}</span><span class="sp"></span><button class="ghostb" data-scan="${esc(S.root)}">⟳ ${esc(t('ov.rescan'))}</button><button class="ghostb" data-act="home">${esc(t('ov.change'))}</button></div>
   <div class="ovgrid"><div class="card2"><h3>${esc(t('ov.byType'))}</h3><div class="stk">${order.map(k => `<i style="--a:${CATC[k][0]};--b:${CATC[k][1]};flex:${Math.max(r.cats[k], tot * 0.004)}" title="${esc(t('cat.' + k))}"></i>`).join('')}</div><div class="cl">${order.map(k => `<div style="--a:${CATC[k][0]};--b:${CATC[k][1]}"><i></i><span>${esc(t('cat.' + k))}</span><b>${esc(F(r.cats[k]))}</b></div>`).join('')}</div></div>
-  <div class="side2"><div class="safe"><small>${esc(isDrive || !drive ? t('ov.free') : t('ov.freeOn', { d: drive.letter }))}</small><div class="n">${drive ? esc(F(drive.free)) : '—'}</div><p>${drive ? esc(t('home.used', { used: F(drive.total - drive.free), total: F(drive.total) })) : ''}</p><button data-act="explore">${esc(t('ov.openExplorer'))} ›</button></div>${r.unread ? `<div class="free"><span>${esc(t('ov.unread', { n: N(r.unread) }))}</span></div>` : ''}${r.linked ? `<div class="free"><span>${esc(t('ov.linked', { n: N(r.linked) }))}</span></div>` : ''}</div></div>
+  <div class="side2"><div class="safe"><small>${esc(isDrive || !drive ? t('ov.free') : t('ov.freeOn', { d: drive.letter }))}</small><div class="n">${drive ? esc(F(drive.free)) : '—'}</div><p>${drive ? esc(t('home.used', { used: F(drive.total - drive.free), total: F(drive.total) })) : ''}</p><button data-act="explore">${esc(t('ov.openExplorer'))} ›</button></div>${drive && drive.type === 'phone' ? `<div class="free"><span>${esc(t('phone.note'))}</span></div>` : ''}${r.unread ? `<div class="free"><span>${esc(t('ov.unread', { n: N(r.unread) }))}</span></div>` : ''}${r.linked ? `<div class="free"><span>${esc(t('ov.linked', { n: N(r.linked) }))}</span></div>` : ''}</div></div>
   <h3 class="ovh2">${esc(t('ov.choose'))}</h3><div class="acts"><button class="ac" data-tool="explorer" style="--a:#8b5cff;--b:#6c3ef2"><div class="ic">${FOLDER}</div><span class="go2">›</span><b>${esc(t('nav.explorer'))}</b><small>${esc(t('ov.explorerDesc'))}</small><span class="st">${esc(t('ov.explorerBadge'))}</span></button>
   ${card('analysis', ICON_AN, '#ffc15e', '#ff9f2e', t('nav.analysis'), t('ov.analysisDesc'), safeSum == null ? t('ex.loading') : t('ov.safeBadge', { size: F(safeSum) }))}${card('dups', ZIP, '#5eead4', '#38bdf8', t('nav.dups'), t('ov.dupsDesc'), t('ov.dupsBadge'))}${card('old', ICON_OLD, '#b79bff', '#7c4dff', t('ov.old'), t('ov.oldDesc'), S.oldCount ? t('ov.oldBadge', { n: N(S.oldCount.n), size: F(S.oldCount.size) }) : t('ex.loading'))}</div>`);
 }
@@ -425,7 +426,8 @@ document.addEventListener('click', ev => {
   if (el = c('[data-vnav]')) return viewerGo(+el.dataset.vnav);
   if (el = c('[data-act]')) {
     const a = el.dataset.act, sel = selList();
-    if (a === 'home') { api.cancelScan(); S.screen = 'home'; return render(); }
+    if (a === 'home') { api.cancelScan(); S.screen = 'home'; render(); return refreshDrives(); }
+    if (a === 'redrives') return refreshDrives();
     if (a === 'settings') { S.prev = S.screen; S.screen = 'settings'; return render(); }
     if (a === 'back2') { S.screen = S.prev === 'settings' ? 'home' : S.prev; return render(); }
     if (a === 'pick') return api.pickFolder().then(p => p && startScan(p));
@@ -480,6 +482,13 @@ document.addEventListener('keydown', ev => {
 const darkQ = matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() { document.documentElement.classList.toggle('dark', S.theme === 'dark' || (S.theme === 'system' && darkQ.matches)); }
 darkQ.addEventListener('change', applyTheme);
+
+// Drives and phones come and go (USB): look again while the home screen is open.
+async function refreshDrives() {
+  const d = await api.drives();
+  if (JSON.stringify(d) !== JSON.stringify(S.drives)) { S.drives = d; if (S.screen === 'home') render(); }
+}
+setInterval(() => { if (S.screen === 'home' && !document.hidden) refreshDrives(); }, 5000);
 
 /* ---------- start ---------- */
 (async () => {

@@ -62,7 +62,27 @@ ipcMain.handle('app:paths', () => {
 });
 
 /* ---------- drives ---------- */
-ipcMain.handle('drives:list', () => new Promise(resolve => {
+// Phones plugged in by USB have no drive letter: fastscan.exe --phones finds them (Windows Portable Devices).
+const phones = new Map(); // scan root -> { dev, id }
+const listPhones = () => new Promise(resolve => {
+  if (process.platform !== 'win32' || !fs.existsSync(fastExe)) return resolve([]);
+  execFile(fastExe, ['--phones'], { windowsHide: true, timeout: 20000 }, (err, out) => {
+    let list = []; try { list = JSON.parse(out); } catch { /* no phones */ }
+    const drives = [];
+    for (const d of list) {
+      const name = d.name.replace(/[\\/]/g, ' ');
+      if (!d.storages.length) { drives.push({ letter: name, label: name, type: 'phone', locked: true, total: 0, free: 0 }); continue; }
+      for (const st of d.storages) {
+        const letter = name + '\\' + st.name.replace(/[\\/]/g, ' ');
+        phones.set(norm(letter), { dev: d.dev, id: st.id });
+        drives.push({ letter, label: name, storage: st.name, type: 'phone', total: st.total, free: st.free });
+      }
+    }
+    resolve(drives);
+  });
+});
+ipcMain.handle('drives:list', async () => [...await diskList(), ...await listPhones()]);
+const diskList = () => new Promise(resolve => {
   const fallback = async () => {
     const list = [];
     if (process.platform === 'win32') {
@@ -80,7 +100,7 @@ ipcMain.handle('drives:list', () => new Promise(resolve => {
       resolve(j.filter(d => d.Size).map(d => ({ letter: d.DeviceID, label: d.VolumeName || '', type: d.DriveType, total: d.Size, free: d.FreeSpace })));
     } catch { fallback(); }
   });
-}));
+});
 
 ipcMain.handle('dialog:folder', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
@@ -91,8 +111,8 @@ ipcMain.handle('dialog:folder', async () => {
 // The fast scanner (native/fastscan.cs) is used when it is there; scanner.js is the fallback.
 const fastExe = app.isPackaged ? path.join(process.resourcesPath, 'fastscan.exe') : path.join(__dirname, 'native', 'fastscan.exe');
 ops.trashExe = fastExe; // the same helper moves many items to the Recycle Bin at once
-function fastScan(root) {
-  const child = require('child_process').spawn(fastExe, [root], { windowsHide: true });
+function fastScan(root, phone) {
+  const child = require('child_process').spawn(fastExe, phone ? ['--mtp', phone.dev, phone.id, root] : [root], { windowsHide: true });
   const ev = new (require('events'))();
   const out = []; let errBuf = '';
   child.stdout.on('data', d => out.push(d));
@@ -105,6 +125,7 @@ function fastScan(root) {
   let failed = false;
   const fallback = () => {
     if (failed) return; failed = true;
+    if (phone) return ev.emit('error', new Error('PHONE')); // scanner.js cannot read a phone
     const w = new Worker(path.join(__dirname, 'scanner.js'), { workerData: { root } });
     w.on('message', m => ev.emit('message', m)); w.on('error', e => ev.emit('error', e));
     ev.terminate = () => w.terminate();
@@ -122,7 +143,8 @@ function fastScan(root) {
 ipcMain.handle('scan:start', (_, { root }) => {
   if (worker) worker.terminate();
   const t0 = Date.now();
-  worker = process.platform === 'win32' && fs.existsSync(fastExe) ? fastScan(root) : new Worker(path.join(__dirname, 'scanner.js'), { workerData: { root } });
+  const phone = phones.get(norm(root));
+  worker = phone || (process.platform === 'win32' && fs.existsSync(fastExe)) ? fastScan(root, phone) : new Worker(path.join(__dirname, 'scanner.js'), { workerData: { root } });
   worker.on('message', m => {
     if (!win || win.isDestroyed()) return;
     if (m.type === 'progress') win.webContents.send('scan:progress', m);
@@ -154,7 +176,16 @@ function findNode(p) {
 }
 
 /* ---------- listing a folder, like Explorer ---------- */
+// A phone cannot be listed like a disk, so its folders are shown from the scan (every file is in it).
+const phoneScan = p => { const s = scanOf(p); return s && phones.has(norm(s.root)) ? s : null; };
+function phoneList(dir) {
+  const node = findNode(dir); if (!node) return { error: 'ENOENT' };
+  const entries = node.c.map(c => ({ name: c.n, path: join(dir, c.n), dir: true, size: c.s, files: c.f, dirs: c.d, mtime: null }))
+    .concat((node.b || []).map(([name, size, mtime]) => ({ name, path: join(dir, name), dir: false, size, mtime: mtime || null })));
+  return { entries, total: node.s, info: { s: node.s, f: node.f, d: node.d }, truncated: false, phone: true };
+}
 ipcMain.handle('fs:list', async (_, dir) => {
+  if (phoneScan(dir)) return phoneList(dir);
   try {
     const ents = await fs.promises.readdir(dir, { withFileTypes: true });
     const node = findNode(dir), out = [];
