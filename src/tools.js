@@ -88,7 +88,9 @@ document.addEventListener('dragstart', e => {
 });
 
 /* ---------- confirm, progress, done ---------- */
-function openConfirm() { Object.assign(S.op, { confirmed: new Set(), word: '', result: null, prog: null }); S.modal = 'confirm'; render(); }
+const onPhone = p => !/^[a-z]:[\\/]/i.test(p) && !/^[\\/]{2}/.test(p);
+const trayPhone = () => S.tray.some(x => onPhone(x.path));
+function openConfirm() { Object.assign(S.op, { confirmed: new Set(), word: '', result: null, prog: null }); if (trayPhone() && S.op.action === 'bin') S.op.action = 'move'; S.modal = 'confirm'; render(); }
 const trayTot = () => S.tray.reduce((a, x) => a + x.size, 0);
 const askItems = () => S.tray.filter(x => ASK.has(x.rule));
 function canRun() {
@@ -110,19 +112,19 @@ function modalHTML() {
     ${bad.length ? `<div class="fails"><h4>${esc(t('done.failed', { n: bad.length }))}</h4>${bad.slice(0, 8).map(x => `<div><b>${esc(x.path)}</b><small>${esc(hasKey('err.' + x.error) ? t('err.' + x.error) : t('err.other', { e: x.error }))}</small></div>`).join('')}</div>` : ''}
     <button class="go" data-act2="donex" style="width:auto;height:auto;margin-top:18px">${esc(t('done.close'))}</button></div></div></div>`;
   }
-  const asks = askItems(), tot = trayTot(), sameDrive = o.dest && S.tray.some(x => x.path.slice(0, 2).toLowerCase() === o.dest.slice(0, 2).toLowerCase());
+  const ph = trayPhone(), asks = askItems(), tot = trayTot(), sameDrive = o.dest && S.tray.some(x => x.path.slice(0, 2).toLowerCase() === o.dest.slice(0, 2).toLowerCase());
   const move = `<div class="mvp"><div class="mrow"><label>${esc(t('confirm.dest'))}</label><div class="pth">${o.dest ? esc(o.dest) : `<span style="color:var(--mute)">${esc(t('confirm.noDest'))}</span>`}<button class="lnk" data-act2="pickdest">${esc(t(o.dest ? 'confirm.change' : 'confirm.choose'))}</button></div></div>
     ${o.dest ? `<div class="space ${!sameDrive && o.destFree >= tot ? 'ok' : 'bad'}">${esc(sameDrive ? t('confirm.sameDrive') : o.destFree >= tot ? t('confirm.spaceOk', { need: F(tot), free: F(o.destFree) }) : t('confirm.spaceBad', { need: F(tot), free: F(o.destFree) }))}</div>` : ''}
-    <label class="chk"><input type="checkbox" id="ver" ${o.verify ? 'checked' : ''}> <span>${t('confirm.verify')}</span></label>
+    ${ph ? `<div class="warn">📱 <span>${esc(t('confirm.phoneNote'))}</span></div>` : `<label class="chk"><input type="checkbox" id="ver" ${o.verify ? 'checked' : ''}> <span>${t('confirm.verify')}</span></label>
     <div class="after"><b>${esc(t(o.verify ? 'confirm.afterVerified' : 'confirm.after'))}</b>
       <label class="rad"><input type="radio" name="oa" value="perm" ${o.origAfter === 'perm' ? 'checked' : ''}> <span>${t('confirm.origPerm')}</span></label>
-      <label class="rad"><input type="radio" name="oa" value="bin" ${o.origAfter === 'bin' ? 'checked' : ''}> <span>${t('confirm.origBin')}</span></label></div></div>`;
+      <label class="rad"><input type="radio" name="oa" value="bin" ${o.origAfter === 'bin' ? 'checked' : ''}> <span>${t('confirm.origBin')}</span></label></div>`}</div>`;
   const perm = `<div class="permp"><div class="warn">⚠ <span>${t('confirm.permWarn')}</span></div>
-    <label class="chk"><input type="checkbox" id="sec" ${o.secure ? 'checked' : ''}> <span>${t('confirm.secure')}</span></label>
+    ${ph ? '' : `<label class="chk"><input type="checkbox" id="sec" ${o.secure ? 'checked' : ''}> <span>${t('confirm.secure')}</span></label>`}
     <div class="typed">${esc(t('confirm.type'))} <b>${esc(t('confirm.word'))}</b> <input id="hp" value="${esc(o.word)}" placeholder="${esc(t('confirm.word'))}" autocomplete="off"></div></div>`;
   const label = o.action === 'perm' ? t('confirm.runPerm') : o.action === 'move' ? t('confirm.runMove') : t('confirm.runBin');
   return `<div class="ov"><div class="md"><div class="mh"><h2>${esc(t('confirm.title'))}</h2><p>${esc(t('confirm.sub', { n: S.tray.length, size: F(tot) }))}</p></div>
-  <div class="mact"><h4 class="mlab">${esc(t('confirm.how'))}</h4><div class="opts"><button class="op ${o.action === 'bin' ? 'on' : ''}" data-opact="bin"><b>🗑 ${esc(t('confirm.bin'))}</b><small>${esc(t('confirm.binDesc'))}</small></button><button class="op ${o.action === 'move' ? 'on' : ''}" data-opact="move"><b>📦 ${esc(t('confirm.move'))}</b><small>${esc(t('confirm.moveDesc'))}</small></button><button class="op ${o.action === 'perm' ? 'on' : ''}" data-opact="perm"><b>⚠ ${esc(t('confirm.perm'))}</b><small>${esc(t('confirm.permDesc'))}</small></button></div>
+  <div class="mact"><h4 class="mlab">${esc(t('confirm.how'))}</h4><div class="opts">${ph ? '' : `<button class="op ${o.action === 'bin' ? 'on' : ''}" data-opact="bin"><b>🗑 ${esc(t('confirm.bin'))}</b><small>${esc(t('confirm.binDesc'))}</small></button>`}<button class="op ${o.action === 'move' ? 'on' : ''}" data-opact="move"><b>📦 ${esc(t(ph ? 'confirm.phoneMove' : 'confirm.move'))}</b><small>${esc(t(ph ? 'confirm.phoneMoveDesc' : 'confirm.moveDesc'))}</small></button><button class="op ${o.action === 'perm' ? 'on' : ''}" data-opact="perm"><b>⚠ ${esc(t(ph ? 'confirm.phonePerm' : 'confirm.perm'))}</b><small>${esc(t(ph ? 'confirm.phonePermDesc' : 'confirm.permDesc'))}</small></button></div>
   ${o.action === 'move' ? move : o.action === 'perm' ? perm : ''}</div>
   <div class="mb"><h4 class="mlab">${esc(t('confirm.what', { n: S.tray.length }))}</h4>${S.tray.map(x => `<div class="ci ${asks.includes(x) ? 'ask' : ''}" style="--c:${RC[x.risk] || RC.unknown};${gradOf(x)}">${visual(x)}<div class="t"><b>${esc(x.name)}</b><small>${esc(parentOf(x.path))} · ${esc(t('risk.' + x.risk))}</small><p><b>${esc(t('an.ifDeleted'))}:</b> ${esc(exText(x, 'del'))}</p>${x.contents ? `<p class="cnote">🧹 ${esc(t('confirm.contentsNote'))}</p>` : ''}${asks.includes(x) ? `<label><input type="checkbox" data-conf="${esc(x.path)}" ${o.confirmed.has(x.path) ? 'checked' : ''}> ${esc(t('confirm.appAsk'))}</label>` : ''}</div><span class="s">${esc(F(x.size))}</span></div>`).join('')}</div>
   <div class="mf"><div class="tot">${esc(t('confirm.total'))}<b>${esc(F(tot))}</b></div><span class="sp"></span><button class="cancel" data-act2="opclose">${esc(t('scan.cancel'))}</button><button class="go ${o.action === 'move' ? '' : 'danger'}" id="run" ${canRun() ? '' : 'disabled'} style="width:auto;height:auto">${esc(label)}</button></div></div></div>`;
@@ -137,7 +139,7 @@ api.onOpProgress(d => {
 async function runOp() {
   if (!canRun()) return;
   const o = S.op; S.modal = 'prog'; render();
-  const res = await api.runOp({ action: o.action, items: S.tray.map(x => ({ path: x.path, contents: !!x.contents, size: x.size })), secure: o.secure, verify: o.verify, origAfter: o.origAfter, dest: o.dest });
+  const res = await api.runOp({ action: o.action, items: S.tray.map(x => ({ path: x.path, contents: !!x.contents, size: x.size })), secure: o.secure && !trayPhone(), verify: o.verify, origAfter: o.origAfter, dest: o.dest });
   if (res.error) { S.modal = 'confirm'; render(); return toast(t('err.' + res.error)); }
   o.result = res;
   const okList = res.results.filter(x => x.ok);

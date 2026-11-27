@@ -262,6 +262,7 @@ static partial class FastScan {
     if (args[0] == "--trash") return Trash();
     if (args[0] == "--apps") return Apps();
     if (args[0] == "--phones") return Phones();
+    if (args[0] == "--mtp-ops" && args.Length >= 5) return PhoneOps(args);
     if (args[0] == "--types") { var ex = new string[args.Length - 1]; Array.Copy(args, 1, ex, 0, ex.Length); return Types(ex); }
     if (args[0] == "--info") { // description and company written inside a program file
       try {

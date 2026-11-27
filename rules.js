@@ -11,6 +11,12 @@ const RULES = [
   { id: 'hiberfil', risk: 'caution', dir: false, re: /^[a-z]:\\hiberfil\.sys$/ },
   { id: 'winold', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\windows\.old$/ },
   { id: 'winbt', risk: 'caution', dir: true, unit: true, re: /^[a-z]:\\\$(windows\.~bt|windows\.~ws|sysreset|getcurrent)$/ },
+  // phones (path "<phone>\<storage>\...", no drive letter)
+  { id: 'phonetrash', risk: 'safe', dir: true, unit: true, re: /^[^:\\]+\\[^\\]+\\(?:.*\\)?\.(trashbin|trash|recycle)$/ },
+  { id: 'phonethumbs', risk: 'safe', dir: true, unit: true, re: /^[^:\\]+\\[^\\]+\\(?:.*\\)?\.thumbnails$/ },
+  { id: 'phoneappdata', risk: 'caution', dir: true, unit: true, re: /^[^:\\]+\\[^\\]+\\android\\(data|obb)\\[^\\]+$/ },
+  { id: 'phonewa', risk: 'caution', dir: true, area: true, re: /^[^:\\]+\\[^\\]+\\(android\\media\\com\.whatsapp\\)?whatsapp$/ },
+  { id: 'phonedl', risk: 'caution', dir: true, area: true, re: /^[^:\\]+\\[^\\]+\\download$/ },
   // inside Windows
   { id: 'winsxs', risk: 'danger', dir: true, unit: true, re: /^[a-z]:\\windows\\winsxs$/ },
   { id: 'wininstaller', risk: 'danger', dir: true, unit: true, re: /^[a-z]:\\windows\\installer$/ },

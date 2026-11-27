@@ -249,7 +249,7 @@ ipcMain.handle('analysis:run', () => {
     .filter(it => !own.some(o => it.path.toLowerCase() === o || it.path.toLowerCase().startsWith(o + path.sep)))
     .slice(0, 1500)
     .map(it => { const r = rules.RULES.find(x => x.id === it.rule), contents = !!(r && r.contents) && it.dir;
-      return { ...it, contents, lock: it.rule === 'recycle' ? 'recycle' : rules.protectedReason(it.path, appPaths(), { contents }) }; });
+      return { ...it, contents, lock: it.rule === 'recycle' ? 'recycle' : guard(it.path, contents) }; });
 });
 ipcMain.handle('analysis:classify', (_, p, isDir) => { const r = rules.classify(p, !!isDir); return r ? { rule: r.id, risk: r.risk } : { rule: null, risk: 'unknown' }; });
 // Folders that hold .exe files (portable programs), remembered for the session. Read-only.
@@ -278,7 +278,7 @@ ipcMain.handle('fs:verinfo', (_, p) => new Promise(resolve => {
   if (!fs.existsSync(fastExe)) return resolve(null);
   execFile(fastExe, ['--info', p], { windowsHide: true, timeout: 8000 }, (err, out) => { try { resolve(err ? null : JSON.parse(out)); } catch { resolve(null); } });
 }));
-ipcMain.handle('ops:guard', (_, list) => list.map(x => typeof x === 'string' ? rules.protectedReason(x, appPaths()) : rules.protectedReason(x.path, appPaths(), { contents: !!x.contents })));
+ipcMain.handle('ops:guard', (_, list) => list.map(x => typeof x === 'string' ? guard(x) : guard(x.path, !!x.contents)));
 
 /* ---------- old files: big files not changed for a long time ---------- */
 const SYSTEM_AREA = /^[a-z]:\\(windows|program files|program files \(x86\)|programdata|\$recycle\.bin|system volume information|recovery)$/i;
@@ -317,12 +317,70 @@ function forget(p, freed, gone) {
   if (gone) { parent.c = parent.c.filter(k => k.n.toLowerCase() !== name); if (parent.b) parent.b = parent.b.filter(b => b[0].toLowerCase() !== name); }
   else if (kid) kid.s = Math.max(0, kid.s - freed);
 }
+/* ---------- phone clean-up ---------- */
+// A phone has no Recycle Bin: items are copied to the PC first ('move', sizes checked) or deleted for good ('perm').
+// The phone's own top folders stay; what is inside them can go.
+const PHONE_TOP = new Set(['dcim', 'download', 'pictures', 'movies', 'music', 'documents', 'android', 'alarms', 'notifications', 'ringtones', 'podcasts', 'audiobooks', 'recordings']);
+function phoneGuard(p) {
+  const s = phoneScan(p); if (!s) return null;
+  const parts = p.slice(s.root.replace(/[\\]+$/, '').length).split('\\').filter(Boolean).map(x => x.toLowerCase());
+  if (!parts.length) return 'root';
+  if (parts.length === 1 && PHONE_TOP.has(parts[0])) return 'system';
+  if (parts.length === 2 && parts[0] === 'android' && ['data', 'obb', 'media'].includes(parts[1])) return 'system';
+  return null;
+}
+const guard = (p, contents) => phoneScan(p) ? phoneGuard(p) : rules.protectedReason(p, appPaths(), { contents });
+function phoneSize(p) {
+  const n = findNode(p); if (n) return n.s;
+  const i = p.lastIndexOf('\\'), parent = findNode(p.slice(0, i)), name = p.slice(i + 1).toLowerCase();
+  const b = parent && (parent.b || []).find(x => x[0].toLowerCase() === name);
+  return b ? b[1] : 0;
+}
+function phoneOps(items, opts, progress) {
+  const s = phoneScan(items[0].path), ph = phones.get(norm(s.root)), results = [];
+  const total = items.reduce((a, x) => a + x.size, 0) * (opts.action === 'move' ? 2 : 1);
+  let base = 0;
+  const run = (mode, list) => new Promise(resolve => {
+    const args = ['--mtp-ops', ph.dev, ph.id, s.root, mode].concat(mode === 'get' ? [opts.dest] : []);
+    const child = require('child_process').spawn(fastExe, args, { windowsHide: true }), out = [];
+    let buf = '', ebuf = '';
+    child.stdout.on('data', d => { buf += d; const lines = buf.split('\n'); buf = lines.pop(); for (const l of lines) if (l.trim()) out.push(JSON.parse(l)); });
+    child.stderr.on('data', d => { ebuf += d; const lines = ebuf.split('\n'); ebuf = lines.pop(); const last = lines.filter(Boolean).pop();
+      if (last) try { progress({ phase: 'copy', current: list[out.length] ? list[out.length].path : '', done: base + JSON.parse(last).done, total, index: out.length, count: list.length }); } catch { /* partial */ } });
+    child.on('error', () => resolve(list.map(() => ({ ok: false, error: 'HELPER' }))));
+    child.on('close', () => { if (buf.trim()) try { out.push(JSON.parse(buf)); } catch { /* cut off */ } resolve(list.map((_, i) => out[i] || { ok: false, error: 'HELPER' })); });
+    child.stdin.end(list.map(x => x.path).join('\n') + '\n');
+  });
+  return (async () => {
+    let todo = items;
+    if (opts.action === 'move') {
+      const got = await run('get', items); todo = [];
+      items.forEach((x, i) => got[i].ok ? (x.target = got[i].target, todo.push(x)) : results.push({ path: x.path, ok: false, error: got[i].error, freed: 0 }));
+      base = total / 2;
+    }
+    progress({ phase: 'delete', current: '', done: base, total, index: 0, count: todo.length });
+    const del = todo.length ? await run('del', todo) : [];
+    todo.forEach((x, i) => results.push(del[i].ok ? { path: x.path, ok: true, freed: x.size, gone: true, target: x.target } : { path: x.path, ok: false, error: del[i].error, freed: 0, target: x.target }));
+    return results;
+  })();
+}
 let opBusy = false;
 ipcMain.handle('ops:run', async (_, opts) => {
   if (opBusy) return { error: 'BUSY' };
   opBusy = true;
   try {
-    const results = await ops.run(opts, d => send('ops:progress', d), appPaths());
+    // Phone items never reach ops.run: their paths have no drive letter and would be read as relative paths.
+    const onPhone = opts.items.filter(x => phoneScan(x.path)), results = [];
+    if (onPhone.length) {
+      const ok = [];
+      for (const x of onPhone) {
+        const why = opts.action === 'bin' ? 'NOBIN' : x.contents ? 'CACHEMOVE' : phoneGuard(x.path) ? 'PROTECTED' : opts.action === 'move' && !opts.dest ? 'NODEST' : null;
+        if (why) results.push({ path: x.path, ok: false, error: why, freed: 0 }); else ok.push({ path: x.path, size: phoneSize(x.path) });
+      }
+      if (ok.length) results.push(...await phoneOps(ok, opts, d => send('ops:progress', d)));
+    }
+    const rest = opts.items.filter(x => !phoneScan(x.path));
+    if (rest.length) results.push(...await ops.run({ ...opts, items: rest }, d => send('ops:progress', d), appPaths()));
     for (const r of results) forget(r.path, r.freed, r.gone);
     const s = scanOf(lastRoot);
     return { results, rootBytes: s ? s.tree.s : null };

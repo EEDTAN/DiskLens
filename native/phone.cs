@@ -31,6 +31,19 @@ interface IPortableDevice {
 interface IPortableDeviceContent {
   void EnumObjects(uint flags, [MarshalAs(UnmanagedType.LPWStr)] string parent, IPortableDeviceValues filter, out IEnumPortableDeviceObjectIDs e);
   void Properties(out IPortableDeviceProperties props);
+  void Transfer(out IPortableDeviceResources res);
+  void _CreateObjectWithPropertiesOnly(); void _CreateObjectWithPropertiesAndData();
+  void Delete(uint options, IPortableDevicePropVariantCollection ids, IntPtr results);
+}
+[ComImport, Guid("fd8878ac-d841-4d17-891c-e6829cdb6934"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IPortableDeviceResources {
+  void _GetSupportedResources(); void _GetResourceAttributes();
+  void GetStream([MarshalAs(UnmanagedType.LPWStr)] string obj, ref PropKey key, uint mode, ref uint optimal, out System.Runtime.InteropServices.ComTypes.IStream stream);
+}
+[ComImport, Guid("89b2e422-4f1b-4316-bcef-a44afea83eb3"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IPortableDevicePropVariantCollection {
+  void GetCount(out uint n); void _GetAt();
+  void Add(IntPtr pv);
 }
 [ComImport, Guid("10ece955-cf41-4728-bfa0-41eedf1bbf19"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 interface IEnumPortableDeviceObjectIDs {
@@ -170,5 +183,97 @@ static partial class FastScan {
     WalkPhone(storage, root.TrimEnd('\\'), tree);
     d.Close();
     return tree;
+  }
+
+  // ---------- deleting from the phone, copying to the PC ----------
+  //   fastscan.exe --mtp-ops <dev> <storage> <root> del          paths on stdin, deleted for good (a phone has no Recycle Bin)
+  //   fastscan.exe --mtp-ops <dev> <storage> <root> get <folder> paths on stdin, copied into <folder>; sizes are checked
+  // One JSON line per path on stdout: {"ok":true,"target":"..."} or {"ok":false,"error":"..."}. Progress on stderr: {"done":bytes}.
+  class Obj { public string id, name; public bool dir; public long size; }
+  static readonly Dictionary<string, List<Obj>> kidsOf = new Dictionary<string, List<Obj>>();
+  static List<Obj> Kids(string parent) {
+    List<Obj> l; if (kidsOf.TryGetValue(parent, out l)) return l;
+    l = new List<Obj>();
+    foreach (var id in Children(mc, parent)) {
+      IPortableDeviceValues v; mp.GetValues(id, mk, out v);
+      Guid t; var kt = K_TYPE;
+      l.Add(new Obj { id = id, name = S(v, K_FILE) ?? S(v, K_NAME) ?? id, dir = v.GetGuidValue(ref kt, out t) == 0 && (t == FOLDER || t == FUNCTIONAL), size = U(v, K_SIZE) });
+    }
+    return kidsOf[parent] = l;
+  }
+  static Obj Find(string storage, string rel) {
+    var cur = new Obj { id = storage, dir = true };
+    foreach (var part in rel.Split(new[] { '\\' }, StringSplitOptions.RemoveEmptyEntries)) {
+      if (!cur.dir) return null;
+      cur = Kids(cur.id).Find(o => o.name == part);
+      if (cur == null) return null;
+    }
+    return cur;
+  }
+  static long copied; static TextWriter perr;
+  static void CopyOut(Obj o, string target) {
+    if (o.dir) {
+      Directory.CreateDirectory(target);
+      foreach (var k in Kids(o.id)) CopyOut(k, Path.Combine(target, k.name));
+      return;
+    }
+    IPortableDeviceResources res; mc.Transfer(out res);
+    var key = new PropKey(new Guid("E81E79BE-34F0-41BF-B53F-F1A06AE87842"), 0); uint opt = 256 * 1024;
+    System.Runtime.InteropServices.ComTypes.IStream s; res.GetStream(o.id, ref key, 0 /* STGM_READ */, ref opt, out s);
+    var buf = new byte[Math.Max(opt, 64 * 1024)]; IntPtr pn = Marshal.AllocCoTaskMem(4); long total = 0;
+    try {
+      using (var f = new FileStream(target, FileMode.CreateNew, FileAccess.Write)) {
+        while (true) {
+          s.Read(buf, buf.Length, pn); int n = Marshal.ReadInt32(pn);
+          if (n <= 0) break;
+          f.Write(buf, 0, n); total += n; copied += n;
+          perr.WriteLine("{\"done\":" + copied + "}"); perr.Flush();
+        }
+      }
+    } finally { Marshal.FreeCoTaskMem(pn); Marshal.ReleaseComObject(s); }
+    if (total != o.size || new FileInfo(target).Length != o.size) throw new IOException("VERIFY");
+  }
+  static void DeleteObj(string id) {
+    var c = Make<IPortableDevicePropVariantCollection>("08a99e2f-6d6d-4b80-af5a-baf2bcbe4cb9");
+    IntPtr pv = Marshal.AllocCoTaskMem(24), str = Marshal.StringToCoTaskMemUni(id);
+    try {
+      for (int i = 0; i < 24; i++) Marshal.WriteByte(pv, i, 0);
+      Marshal.WriteInt16(pv, 31 /* VT_LPWSTR */); Marshal.WriteIntPtr(pv, 8, str);
+      c.Add(pv); // the collection keeps its own copy
+    } finally { Marshal.FreeCoTaskMem(str); Marshal.FreeCoTaskMem(pv); }
+    mc.Delete(1 /* with everything inside */, c, IntPtr.Zero);
+  }
+  static string Free(string folder, string name) {
+    string t = Path.Combine(folder, name); int k = 2;
+    while (File.Exists(t) || Directory.Exists(t)) t = Path.Combine(folder, Path.GetFileNameWithoutExtension(name) + " (" + k++ + ")" + Path.GetExtension(name));
+    return t;
+  }
+  static int PhoneOps(string[] a) {
+    string root = a[3].TrimEnd('\\'), mode = a[4];
+    var d = OpenDevice(a[1]); d.Content(out mc); mc.Properties(out mp);
+    mk = Keys(K_NAME, K_FILE, K_TYPE, K_SIZE);
+    perr = new StreamWriter(Console.OpenStandardError(), new UTF8Encoding(false));
+    var o = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+    var input = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
+    string line;
+    while ((line = input.ReadLine()) != null) {
+      if (line.Length == 0) continue;
+      var w = new StringWriter();
+      try {
+        if (!line.StartsWith(root + "\\", StringComparison.OrdinalIgnoreCase)) throw new IOException("OUTSIDE");
+        var obj = Find(a[2], line.Substring(root.Length + 1));
+        if (obj == null) throw new IOException("ENOENT");
+        if (mode == "del") { DeleteObj(obj.id); w.Write("{\"ok\":true}"); }
+        else {
+          string t = Free(a[5], obj.name);
+          try { CopyOut(obj, t); }
+          catch { try { if (Directory.Exists(t)) Directory.Delete(t, true); else File.Delete(t); } catch { } throw; }
+          w.Write("{\"ok\":true,\"target\":"); Str(w, t); w.Write("}");
+        }
+      } catch (Exception e) { w.Write("{\"ok\":false,\"error\":"); Str(w, e is IOException ? e.Message : e.GetType().Name + ": " + e.Message); w.Write("}"); }
+      o.WriteLine(w.ToString()); o.Flush();
+    }
+    d.Close();
+    return 0;
   }
 }

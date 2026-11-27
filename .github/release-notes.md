@@ -7,6 +7,22 @@
 
 Windows 10 and 11, 64-bit. DiskLens is not code-signed yet, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
 
+## What is new in 0.3.11
+
+- **Delete phone files.** Files and folders on a phone plugged in by USB can now be cleaned up from DiskLens, the same way File Explorer deletes them. A phone has no Recycle Bin, so you get two choices:
+  - **Move to this PC first**: each item is copied to a folder you pick, its size is checked, and only then is it deleted from the phone. If the copy fails, the item stays on the phone.
+  - **Delete from the phone for good**: you type the confirmation word first.
+- The phone's own top folders (DCIM, Download, Pictures, Music, Android, Android/data and so on) are locked 🔒. What is inside them can still be deleted.
+- Analysis now recognises phone folders: the Gallery trash (`.trashBin`) and `.thumbnails` are **Safe**; app data in Android/data and obb, WhatsApp media and Download are **Check first**.
+
+## Yang baru di 0.3.11
+
+- **Hapus file di HP.** File dan folder di HP yang dicolok lewat USB sekarang bisa dibersihkan dari DiskLens, sama seperti File Explorer menghapusnya. HP tidak punya Recycle Bin, jadi ada dua pilihan:
+  - **Pindah ke laptop dulu**: setiap item disalin ke folder yang kamu pilih, ukurannya dicek, baru dihapus dari HP. Kalau penyalinan gagal, item tetap ada di HP.
+  - **Hapus permanen dari HP**: harus mengetik kata konfirmasi dulu.
+- Folder utama HP (DCIM, Download, Pictures, Music, Android, Android/data, dan lain-lain) dikunci 🔒. Isinya tetap bisa dihapus.
+- Analisis sekarang mengenali folder HP: sampah Galeri (`.trashBin`) dan `.thumbnails` termasuk **Aman**. Data aplikasi di Android/data dan obb, media WhatsApp, serta Download termasuk **Cek dulu**.
+
 ## What is new in 0.3.10
 
 - **Phones and tablets**: a phone plugged in by USB now shows up under the drives on the home screen, next to C: and D:. Scan it like a drive and browse its folders in Explorer, Analysis and Old files. It is read through Windows Portable Devices (MTP), the same way File Explorer shows it under "This PC".
